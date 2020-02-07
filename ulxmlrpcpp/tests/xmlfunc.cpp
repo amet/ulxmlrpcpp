@@ -5,7 +5,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: xmlfunc.cpp 10942 2011-09-13 14:35:52Z korosteleva $
+    $Id: xmlfunc.cpp 1165 2010-01-06 10:51:05Z ewald-arnold $
 
 ***************************************************************************/
 
@@ -27,8 +27,17 @@
  *
  ***************************************************************************/
 
+// upon requst you may also use intrinsic types like bool, int, double, char*
+// which expand to their xmlrpc counterparts. Define before #including ulxr_value.h!!
+#define ULXR_USE_INTRINSIC_VALUE_TYPES
+
+// upon requst you may also use the following construct
+//    ("second" << i2)
+#define ULXR_STRUCT_MEMBER_FROM_NAME_VALUE
+
 #define DEBUG
 
+#include <ulxmlrpcpp/ulxmlrpcpp.h>  // always first header
 
 #include <cstring>
 #include <iostream>
@@ -37,7 +46,6 @@
 #include <cstdlib>
 #include <cstdio>
 
-#include <ulxmlrpcpp/ulxmlrpcpp.h>
 #include <ulxmlrpcpp/ulxr_except.h>
 #include <ulxmlrpcpp/ulxr_value.h>
 #include <ulxmlrpcpp/ulxr_call.h>
@@ -47,7 +55,7 @@
 #include <ulxmlrpcpp/ulxr_responseparse.h>
 
 const char *crashPattern    =
-    "<?xml version=\"1.0\" encoding=\"utf-8\"?>                                           \
+"<?xml version=\"1.0\" encoding=\"utf-8\"?>                                           \
   <methodResponse>                                                                    \
     <params><param><value><array><data><value>                                        \
       <struct>                                                                        \
@@ -80,15 +88,15 @@ const char *emptyArrayPattern   =  "<methodResponse>\n"
                                    "</methodResponse>\n";
 
 const char *emptyStructPattern   =  "<methodResponse>\n"
-                                    "  <params>\n"
-                                    "   <param>\n"
-                                    "    <value>\n"
-                                    "     <struct>\n"
-                                    "     </struct>\n"
-                                    "    </value>\n"
-                                    "   </param>\n"
-                                    "  </params>\n"
-                                    "</methodResponse>\n";
+                                   "  <params>\n"
+                                   "   <param>\n"
+                                   "    <value>\n"
+                                   "     <struct>\n"
+                                   "     </struct>\n"
+                                   "    </value>\n"
+                                   "   </param>\n"
+                                   "  </params>\n"
+                                   "</methodResponse>\n";
 
 const char *int1Pattern   =  "<value><i4>123</i4></value>";
 const char *int2Pattern   =  "<value><int>321</int></value>";
@@ -119,460 +127,469 @@ const char *struct1Pattern = "<value>\n"
                              "</value>\n\n";
 
 const char *struct2Pattern =
-    "<value>\n"
-    " <struct>\n"
-    "  <member>\n"
-    "   <value><string>faultstr2</string></value>\n"
-    "   <name>faultString</name>\n"
-    "  </member>\n"
-    "  <member>\n"
-    "   <value><i4>456</i4></value>\n"
-    "   <name>faultcode</name>\n"
-    "  </member>\n"
-    " </struct>\n"
-    "</value>";
+                             "<value>\n"
+                             " <struct>\n"
+                             "  <member>\n"
+                             "   <value><string>faultstr2</string></value>\n"
+                             "   <name>faultString</name>\n"
+                             "  </member>\n"
+                             "  <member>\n"
+                             "   <value><i4>456</i4></value>\n"
+                             "   <name>faultcode</name>\n"
+                             "  </member>\n"
+                             " </struct>\n"
+                             "</value>";
 
 const char *arrayPattern  =
-    "<value>\n"
-    " <array>\n"
-    "  <data>\n"
-    "   <value><boolean>true</boolean></value>\n"
-    "   <value><i4>123</i4></value>\n"
-    "  </data>\n"
-    " </array>\n"
-    "</value>";
+                             "<value>\n"
+                             " <array>\n"
+                             "  <data>\n"
+                             "   <value><boolean>true</boolean></value>\n"
+                             "   <value><i4>123</i4></value>\n"
+                             "  </data>\n"
+                             " </array>\n"
+                             "</value>";
 
 const char *respPattern  =
-    "<methodResponse>\n"
-    " <fault>\n"
-    "  <value>\n"
-    "   <struct>\n"
-    "    <member>\n"
-    "     <name>faultCode</name>\n"
-    "     <value><i4>123</i4></value>\n"
-    "    </member>\n"
-    "    <member>\n"
-    "     <name>faultString</name>\n"
-    "     <value><string>faultstr_r</string></value>\n"
-    "    </member>\n"
-    "   </struct>\n"
-    "  </value>\n"
-    " </fault>\n"
-    "</methodResponse>\n";
+                            "<methodResponse>\n"
+                            " <fault>\n"
+                            "  <value>\n"
+                            "   <struct>\n"
+                            "    <member>\n"
+                            "     <name>faultCode</name>\n"
+                            "     <value><i4>123</i4></value>\n"
+                            "    </member>\n"
+                            "    <member>\n"
+                            "     <name>faultString</name>\n"
+                            "     <value><string>faultstr_r</string></value>\n"
+                            "    </member>\n"
+                            "   </struct>\n"
+                            "  </value>\n"
+                            " </fault>\n"
+                            "</methodResponse>\n";
 
 const char *callPattern1  =
-    "<?xml version = '1.0'?>\n"
-    "  <methodCall>\n"
-    "    <methodName>system.getCapabilities</methodName>\n"
-    "   <params>\n"
-    "      <param><value><string><![CDATA[]]></string></value></param>\n"
-    "   </params>\n"
-    "</methodCall>\n";
+"<?xml version = '1.0'?>\n"
+"  <methodCall>\n"
+"    <methodName>system.getCapabilities</methodName>\n"
+"   <params>\n"
+"      <param><value><string><![CDATA[]]></string></value></param>\n"
+"   </params>\n"
+"</methodCall>\n";
 
 const char *callPattern2  =
-    "<methodCall>\n"
-    " <methodName>shell.call</methodName>\n"
-    " <params>\n"
-    "  <param>\n"
-    "   <value><string>string</string></value>\n"
-    "  </param>\n"
-    "  <param>\n"
-    "   <value><i4>123</i4></value>\n"
-    "  </param>\n"
-    "  <param>\n"
-    "   <value><boolean>true</boolean></value>\n"
-    "  </param>\n"
-    " </params>\n"
-    "</methodCall>\n\n";
+                            "<methodCall>\n"
+                            " <methodName>shell.call</methodName>\n"
+                            " <params>\n"
+                            "  <param>\n"
+                            "   <value><string>string</string></value>\n"
+                            "  </param>\n"
+                            "  <param>\n"
+                            "   <value><i4>123</i4></value>\n"
+                            "  </param>\n"
+                            "  <param>\n"
+                            "   <value><boolean>true</boolean></value>\n"
+                            "  </param>\n"
+                            " </params>\n"
+                            "</methodCall>\n\n";
 
 const char *emptyCallPattern1  =
-    "<methodCall>\n"
-    " <methodName>shell.call</methodName>\n"
-    " <params>\n"
-    " </params>\n"
-    "</methodCall>\n\n";
+                            "<methodCall>\n"
+                            " <methodName>shell.call</methodName>\n"
+                            " <params>\n"
+                            " </params>\n"
+                            "</methodCall>\n\n";
 
 const char *emptyCallPattern2  =
-    "<methodCall>\n"
-    " <methodName>shell.call</methodName>\n"
-    " <params/>\n"
-    "</methodCall>\n\n";
+                            "<methodCall>\n"
+                            " <methodName>shell.call</methodName>\n"
+                            " <params/>\n"
+                            "</methodCall>\n\n";
 
 void testPattern(const char *pattern)
 {
-    std::cout << pattern
-              << std::endl
-              << "-----------------------------------------------------\n";
-    ulxr::ValueParser parser;
-    bool done = false;
-    std::cout << "Parser start\n";
-    if (!parser.parse(pattern, strlen(pattern), done))
-    {
-        std::cerr << parser.getErrorString(parser.getErrorCode()).c_str()
-                  << " at line "
-                  << parser.getCurrentLineNumber()
-                  << std::endl;
-    }
-    std::cout << "Parser finish\n";
+  ULXR_COUT << ULXR_GET_STRING(pattern)
+            << std::endl
+            << ULXR_PCHAR("-----------------------------------------------------\n");
+  ulxr::ValueParser parser;
+  bool done = false;
+  ULXR_COUT << ULXR_PCHAR("Parser start\n");
+  if (!parser.parse(pattern, strlen(pattern), done))
+  {
+    std::cerr << ulxr::getLatin1(parser.getErrorString(parser.getErrorCode())).c_str()
+              << " at line "
+              << parser.getCurrentLineNumber()
+              << std::endl;
+  }
+  ULXR_COUT << ULXR_PCHAR("Parser finish\n");
 
-    ulxr::Value val = parser.getValue();
-    std::cout << val.getSignature(true) << std::endl;
-    std::cout << val.getXml(0) << std::endl;
-    if (val.isString() )
-    {
-        ulxr::RpcString str = val;
-        std::cout << "EinRpcString: " << str.getString() << std::endl;
-        return;
-    }
-    std::cout << "====================================================\n";
+  ulxr::Value val = parser.getValue();
+  ULXR_COUT << val.getSignature(true) << std::endl;
+  ULXR_COUT << val.getXml(0) << std::endl;
+  if (val.isString() )
+  {
+    ulxr::RpcString str = val;
+    ULXR_COUT << ULXR_PCHAR("EinRpcString: ") << str.getString() << std::endl;
+    return;
+  }
+  ULXR_COUT << ULXR_PCHAR("====================================================\n");
 }
 
 
 void testCallPattern(const char *pattern)
 {
-    std::cout << pattern << std::endl
-              << "-----------------------------------------------------\n";
-    ulxr::MethodCallParser parser;
-    bool done = false;
-    if (!parser.parse(pattern, strlen(pattern), done))
-    {
-        std::cerr << parser.getErrorString(parser.getErrorCode()).c_str()
-                  << " at line "
-                  << parser.getCurrentLineNumber()
-                  << std::endl;
-    }
+  ULXR_COUT << pattern << std::endl
+            << ULXR_PCHAR("-----------------------------------------------------\n");
+  ulxr::MethodCallParser parser;
+  bool done = false;
+  if (!parser.parse(pattern, strlen(pattern), done))
+  {
+    std::cerr << ulxr::getLatin1(parser.getErrorString(parser.getErrorCode())).c_str()
+              << " at line "
+              << parser.getCurrentLineNumber()
+              << std::endl;
+  }
 
-    std::cout << parser.getMethodCall().getSignature(true) << std::endl;
-    std::cout << parser.getMethodCall().getXml(0) << std::endl;
-    std::cout << parser.getMethodName() << std::endl;
-    std::cout << parser.numParams() << std::endl;
-    for (unsigned i = 0; i < parser.numParams(); ++i)
-        std::cout << parser.getParam(i).getSignature(true) << std::endl;
-    std::cout << "====================================================\n";
+  ULXR_COUT << parser.getMethodCall().getSignature(true) << std::endl;
+  ULXR_COUT << parser.getMethodCall().getXml(0) << std::endl;
+  ULXR_COUT << parser.getMethodName() << std::endl;
+  ULXR_COUT << parser.numParams() << std::endl;
+  for (unsigned i = 0; i < parser.numParams(); ++i)
+    ULXR_COUT << parser.getParam(i).getSignature(true) << std::endl;
+  ULXR_COUT << ULXR_PCHAR("====================================================\n");
 }
 
 
 void testcrashPattern(const char *pattern)
 {
-    ulxr::MethodResponseParser parser;
-    bool done = false;
-    if (!parser.parse(pattern, strlen(pattern), done))
-    {
-        std::cerr << parser.getErrorString(parser.getErrorCode()).c_str()
-                  << " at line "
-                  << parser.getCurrentLineNumber()
-                  << std::endl;
-    }
+  ulxr::MethodResponseParser parser;
+  bool done = false;
+  if (!parser.parse(pattern, strlen(pattern), done))
+  {
+    std::cerr << ulxr::getLatin1(parser.getErrorString(parser.getErrorCode())).c_str()
+              << " at line "
+              << parser.getCurrentLineNumber()
+              << std::endl;
+  }
 
-    ulxr::MethodResponse listresp = parser.getMethodResponse();
-    std::cout << listresp.getXml() << std::endl;
-    ulxr::Array *arrresp = const_cast<ulxr::Array*>(listresp.getResult().getArray());
-    for(unsigned i = 0; i < arrresp->size(); i++)
+  ulxr::MethodResponse listresp = parser.getMethodResponse();
+  std::cout << ulxr::getLatin1(listresp.getXml()) << std::endl;
+  ulxr::Array *arrresp = const_cast<ulxr::Array*>(listresp.getResult().getArray());
+  for(unsigned i = 0; i < arrresp->size(); i++)
+  {
+    ulxr::Value item = arrresp->getItem(i);
+    const ulxr::Struct *structresp = item.getStruct();
+    std::vector<ulxr::CppString> key = structresp->getMemberNames();
+    for(unsigned j = 0; j < key.size(); j++)
     {
-        ulxr::Value item = arrresp->getItem(i);
-        const ulxr::Struct *structresp = item.getStruct();
-        std::vector<std::string> key = structresp->getMemberNames();
-        for(unsigned j = 0; j < key.size(); j++)
-        {
-            std::cout << structresp << " ";
-            std::cout << i + 1 << " " << key[j] << " ";
-            bool  h = structresp->hasMember(key[j]); std::cout << h << " ";
-            ulxr::Value v = structresp->getMember(key[j]); ///< this segfaults
-            ulxr::RpcString s = (ulxr::RpcString)v;
-            std::cout << std::endl;
-        }
+      std::cout << structresp << " ";
+      std::cout << i + 1 << " " << ulxr::getLatin1(key[j]) << " ";
+      bool  h = structresp->hasMember(key[j]); std::cout << h << " ";
+      ulxr::Value v = structresp->getMember(key[j]); ///< this segfaults
+      ulxr::RpcString s = (ulxr::RpcString)v;
+      std::cout << std::endl;
     }
+  }
 }
 
 void testRespPattern(const char *pattern)
 {
-    std::cout << pattern << std::endl
-              << "-----------------------------------------------------\n";
-    ulxr::MethodResponseParser parser;
-    bool done = false;
-    if (!parser.parse(pattern, strlen(pattern), done))
-    {
-        std::cerr << parser.getErrorString(parser.getErrorCode()).c_str()
-                  << " at line "
-                  << parser.getCurrentLineNumber()
-                  << std::endl;
-    }
+  ULXR_COUT << pattern << std::endl
+       << ULXR_PCHAR("-----------------------------------------------------\n");
+  ulxr::MethodResponseParser parser;
+  bool done = false;
+  if (!parser.parse(pattern, strlen(pattern), done))
+  {
+    std::cerr << ulxr::getLatin1(parser.getErrorString(parser.getErrorCode())).c_str()
+              << " at line "
+              << parser.getCurrentLineNumber()
+              << std::endl;
+  }
 
-    ulxr::Value val = parser.getValue();
-    std::cout << "!Value...\n";
-    std::cout << val.getSignature(true) << std::endl;
-    std::cout << val.getXml(0) << std::endl;
-    std::cout << "Response...\n";
-    std::cout << parser.getMethodResponse().getSignature(true) << std::endl;
-    std::cout << parser.getMethodResponse().getXml(0) << std::endl;
-    std::cout << "====================================================\n";
+  ulxr::Value val = parser.getValue();
+  ULXR_COUT << ULXR_PCHAR("!Value...\n");
+  ULXR_COUT << val.getSignature(true) << std::endl;
+  ULXR_COUT << val.getXml(0) << std::endl;
+  ULXR_COUT << ULXR_PCHAR("Response...\n");
+  ULXR_COUT << parser.getMethodResponse().getSignature(true) << std::endl;
+  ULXR_COUT << parser.getMethodResponse().getXml(0) << std::endl;
+  ULXR_COUT << ULXR_PCHAR("====================================================\n");
 }
 
 // #define STRESS_IT
 
 int main(int argc, char * argv [])
 {
-    ulxr::enableXmlPrettyPrint(true);
+  ulxr::intializeLog4J(argv[0]);
+  ulxr::enableXmlPrettyPrint(true);
 
-    int success = 0;
+  int success = 0;
 
 #ifdef STRESS_IT
-    for (int often = 0; often < 1000; ++often)
-    {
+  for (int often = 0; often < 1000; ++often)
+  {
 #endif
-        try
-        {
-            ulxr::Boolean b(true);
-            ulxr::Integer i(123);
-            ulxr::Double d(123.456);
-            ulxr::RpcString s("<>&\"'string<>&\"'0xd9f0�)/()/");
-            ulxr::DateTime dt("20020310T10:23:45");
-            std::time_t t = std::time(0);
-            ulxr::DateTime dt2(t);
-            ulxr::Base64 b64("ABASrt466a90");
+    try
+    {
+      ulxr::Boolean b(true);
+      ulxr::Integer i(123);
+      ulxr::Double d(123.456);
+      ulxr::RpcString s("<>&\"'string<>&\"'0xd9f0�)/()/");
+      ulxr::DateTime dt(ULXR_PCHAR("20020310T10:23:45"));
+      std::time_t t = std::time(0);
+      ulxr::DateTime dt2(t);
+      ulxr::Base64 b64(ULXR_PCHAR("ABASrt466a90"));
 
-            typedef std::map<std::string, ulxr::Value> members;
-            typedef std::pair<std::string, ulxr::Value> member_pair;
-            members val;
-            {
-                ulxr::Array arr1;
-                unsigned szarr = sizeof(arr1);
-                std::cout << szarr << std::endl;
-            }
+      typedef std::map<ulxr::Cpp8BitString, ulxr::Value> members;
+      typedef std::pair<ulxr::Cpp8BitString, ulxr::Value> member_pair;
+      members val;
+      {
+        ulxr::Array arr1;
+        unsigned szarr = sizeof(arr1);
+        ULXR_COUT << szarr << std::endl;
+      }
 
-            ulxr::ValueBase *vb = new ulxr::RpcString("asdfasdf");
-            delete vb;
+      ulxr::ValueBase *vb = new ulxr::RpcString("asdfasdf");
+      delete vb;
 
-            ulxr::Struct st;
-            ulxr::Array ar;
+      ulxr::Struct st;
+      ulxr::Array ar;
 
-            ulxr::Value rv = i;
-            i = rv;
-            std::cout << "rv(i) = " << rv.getSignature(true) << std::endl;
+      ulxr::Value rv = i;
+      i = rv;
+      ULXR_COUT << ULXR_PCHAR("rv(i) = ") << rv.getSignature(true) << std::endl;
 
-            rv = d;
-            d = rv;
-            std::cout << d.getDouble() << std::endl;
-            std::cout << "rv(d) = " << rv.getSignature(true) << std::endl;
+      rv = d;
+      d = rv;
+      ULXR_COUT << d.getDouble() << std::endl;
+      ULXR_COUT << ULXR_PCHAR("rv(d) = ") << rv.getSignature(true) << std::endl;
 
-            rv = b;
-            b = rv;
-            std::cout << "rv(b) = " << rv.getSignature(true) << std::endl;
+      rv = b;
+      b = rv;
+      ULXR_COUT << ULXR_PCHAR("rv(b) = ") << rv.getSignature(true) << std::endl;
 
-            rv = s;
-            s = rv;
-            std::cout << "rv(s) = " << rv.getSignature(true) << std::endl;
+      rv = s;
+      s = rv;
+      ULXR_COUT << ULXR_PCHAR("rv(s) = ") << rv.getSignature(true) << std::endl;
 
-            rv = dt;
-            dt = rv;
-            std::cout << "rv(dt) = " << rv.getSignature(true) << std::endl;
+      rv = dt;
+      dt = rv;
+      ULXR_COUT << ULXR_PCHAR("rv(dt) = ") << rv.getSignature(true) << std::endl;
 
-            rv = b64;
-            b64 = rv;
-            std::cout << "rv(b64) = " << rv.getSignature(true) << std::endl;
+      rv = b64;
+      b64 = rv;
+      ULXR_COUT << ULXR_PCHAR("rv(b64) = ") << rv.getSignature(true) << std::endl;
 
-            rv = ar;
-            ar = rv;
-            std::cout << "rv(ar) = " << rv.getSignature(true) << std::endl;
+      rv = ar;
+      ar = rv;
+      ULXR_COUT << ULXR_PCHAR("rv(ar) = ") << rv.getSignature(true) << std::endl;
 
-            rv = st;
-            st = rv;
-            std::cout << "rv(st) = " << rv.getSignature(true) << std::endl << std::endl;
+      rv = st;
+      st = rv;
+      ULXR_COUT << ULXR_PCHAR("rv(st) = ") << rv.getSignature(true) << std::endl << std::endl;
 
-            ar.addItem(b);
-            ar.addItem(i);
-            ar.addItem(d);
-            ar.addItem(s);
-            ar.addItem(b64);
-            ar.addItem(st);
+      ar.addItem(b);
+      ar.addItem(i);
+      ar.addItem(d);
+      ar.addItem(s);
+      ar.addItem(b64);
+      ar.addItem(st);
 
-            st.addMember ("intmem", i);
-            st.addMember ("dmem", d);
-            st.addMember ("arrmem", ar);
+      st.addMember (ULXR_PCHAR("intmem"), i);
+      st.addMember (ULXR_PCHAR("dmem"), d);
+      st.addMember (ULXR_PCHAR("arrmem"), ar);
 
-            std::cout << i.getSignature(true) << std::endl;
-            std::cout << i.getXml(0) << std::endl << std::endl;
+      ULXR_COUT << i.getSignature(true) << std::endl;
+      ULXR_COUT << i.getXml(0) << std::endl << std::endl;
 
-            std::cout << rv.getSignature(true) << std::endl;
-            std::cout << rv.getXml(0) << std::endl << std::endl;
+      ULXR_COUT << rv.getSignature(true) << std::endl;
+      ULXR_COUT << rv.getXml(0) << std::endl << std::endl;
 
-            std::cout << b.getSignature(true) << std::endl;
-            std::cout << b.getXml(0) << std::endl << std::endl;
+      ULXR_COUT << b.getSignature(true) << std::endl;
+      ULXR_COUT << b.getXml(0) << std::endl << std::endl;
 
-            std::cout << d.getSignature(true) << std::endl;
-            std::cout << d.getXml(0) << std::endl << std::endl;
+      ULXR_COUT << d.getSignature(true) << std::endl;
+      ULXR_COUT << d.getXml(0) << std::endl << std::endl;
 
-            std::cout << s.getSignature(true) << std::endl;
-            std::cout << s.getXml(0) << std::endl << std::endl;
+      ULXR_COUT << s.getSignature(true) << std::endl;
+      ULXR_COUT << s.getXml(0) << std::endl << std::endl;
 
-            std::cout << dt.getSignature(true) << std::endl;
-            std::cout << dt.getXml(0) << std::endl << std::endl;
+      ULXR_COUT << dt.getSignature(true) << std::endl;
+      ULXR_COUT << dt.getXml(0) << std::endl << std::endl;
 
-            std::cout << dt2.getSignature(true) << std::endl;
-            std::cout << dt2.getXml(0) << std::endl << std::endl;
+      ULXR_COUT << dt2.getSignature(true) << std::endl;
+      ULXR_COUT << dt2.getXml(0) << std::endl << std::endl;
 
-            std::cout << b64.getSignature(true) << std::endl;
-            std::cout << b64.getXml(0) << std::endl << std::endl;
+      ULXR_COUT << b64.getSignature(true) << std::endl;
+      ULXR_COUT << b64.getXml(0) << std::endl << std::endl;
 
-            std::cout << st.getSignature(true) << std::endl;
-            std::cout << st.getXml(0) << std::endl << std::endl;
+      ULXR_COUT << st.getSignature(true) << std::endl;
+      ULXR_COUT << st.getXml(0) << std::endl << std::endl;
 
-            std::cout << ar.getSignature(true) << std::endl;
-            std::cout << ar.getXml(0) << std::endl << std::endl;
+      ULXR_COUT << ar.getSignature(true) << std::endl;
+      ULXR_COUT << ar.getXml(0) << std::endl << std::endl;
 
-            st.clear();
-            st.addMember ("intmem", i);
-            st.addMember ("dmem", d);
+      st.clear();
+      st.addMember (ULXR_PCHAR("intmem"), i);
+      st.addMember (ULXR_PCHAR("dmem"), d);
 
-            ulxr::MethodCall mc ("test.call");
-            mc.addParam (st);
-            mc.addParam (ar);
-            mc.addParam (b);
+      ulxr::MethodCall mc (ULXR_PCHAR("test.call"));
+      mc.addParam (st);
+      mc.addParam (ar);
+      mc.addParam (b);
 
-            std::cout << mc.getXml(0) << std::endl;
-            std::cout << mc.getSignature(true) << std::endl << std::endl;
+      ULXR_COUT << mc.getXml(0) << std::endl;
+      ULXR_COUT << mc.getSignature(true) << std::endl << std::endl;
 
-            ulxr::MethodCall sc ("shell.call");
-            sc.addParam(s);
-            sc.addParam (i);
-            sc.addParam (b);
+      ulxr::MethodCall sc (ULXR_PCHAR("shell.call"));
+      sc.addParam(s);
+      sc.addParam (i);
+      sc.addParam (b);
 
-            std::cout << sc.getXml(0) << std::endl;
-            std::cout << sc.getSignature(true) << std::endl << std::endl;
+      ULXR_COUT << sc.getXml(0) << std::endl;
+      ULXR_COUT << sc.getSignature(true) << std::endl << std::endl;
 
-            std::cout << "----------------------------------------------------\n";
+      ULXR_COUT << ULXR_PCHAR("----------------------------------------------------\n");
 
-            std::cout << "MethodResponse abc\n";
+      ULXR_COUT << ULXR_PCHAR("MethodResponse abc\n");
 
-            ulxr::MethodResponse mr1(123, "faultstr_m");
-            std::cout << mr1.getXml(0) << std::endl;
-            std::cout << mr1.getSignature(true) << std::endl << std::endl;
+      ulxr::MethodResponse mr1(123, ULXR_PCHAR("faultstr_m"));
+      ULXR_COUT << mr1.getXml(0) << std::endl;
+      ULXR_COUT << mr1.getSignature(true) << std::endl << std::endl;
 
-            mr1.setResult(st);
-            std::cout << mr1.getXml(0) << std::endl;
-            std::cout << mr1.getSignature(true) << std::endl << std::endl;
+      mr1.setResult(st);
+      ULXR_COUT << mr1.getXml(0) << std::endl;
+      ULXR_COUT << mr1.getSignature(true) << std::endl << std::endl;
 
-            ulxr::MethodResponse mr2(d);
-            std::cout << mr2.getXml(0) << std::endl;
-            std::cout << mr2.getSignature(true) << std::endl << std::endl;
+      ulxr::MethodResponse mr2(d);
+      ULXR_COUT << mr2.getXml(0) << std::endl;
+      ULXR_COUT << mr2.getSignature(true) << std::endl << std::endl;
 
-            ulxr::MethodResponse mr3;
-            std::cout << mr3.getXml(0) << std::endl;
-            std::cout << mr3.getSignature(true) << std::endl << std::endl;
+      ulxr::MethodResponse mr3;
+      ULXR_COUT << mr3.getXml(0) << std::endl;
+      ULXR_COUT << mr3.getSignature(true) << std::endl << std::endl;
 
-            std::cout << "----------------------------------------------------\n";
+      ULXR_COUT << ULXR_PCHAR("----------------------------------------------------\n");
 
-            std::cout << "Testing patterns\n";
+      ULXR_COUT << ULXR_PCHAR("Testing patterns\n");
 
-            std::cout << "boolPattern\n" << std::flush;
-            testPattern(boolPattern);
+      ULXR_COUT << ULXR_PCHAR("boolPattern\n") << std::flush;
+      testPattern(boolPattern);
 
-            std::cout << "int1Pattern\n";
-            testPattern(int1Pattern);
+      ULXR_COUT << ULXR_PCHAR("int1Pattern\n");
+      testPattern(int1Pattern);
 
-            std::cout << "int2Pattern\n";
-            testPattern(int2Pattern);
+      ULXR_COUT << ULXR_PCHAR("int2Pattern\n");
+      testPattern(int2Pattern);
 
-            std::cout << "doublePattern\n";
-            testPattern(doublePattern);
+      ULXR_COUT << ULXR_PCHAR("doublePattern\n");
+      testPattern(doublePattern);
 
-            std::cout << "stringPattern\n";
-            testPattern(stringPattern);
+      ULXR_COUT << ULXR_PCHAR("stringPattern\n");
+      testPattern(stringPattern);
 
-            std::cout << "base64Pattern\n";
-            testPattern(base64Pattern);
+      ULXR_COUT << ULXR_PCHAR("base64Pattern\n");
+      testPattern(base64Pattern);
 
-            std::cout << "datePattern\n";
-            testPattern(datePattern);
+      ULXR_COUT << ULXR_PCHAR("datePattern\n");
+      testPattern(datePattern);
 
-            std::cout << "struct1Pattern\n";
-            testPattern(struct1Pattern);
+      ULXR_COUT << ULXR_PCHAR("struct1Pattern\n");
+      testPattern(struct1Pattern);
 
-            std::cout << "struct2Pattern\n";
-            testPattern(struct2Pattern);
+      ULXR_COUT << ULXR_PCHAR("struct2Pattern\n");
+      testPattern(struct2Pattern);
 
-            std::cout << "arrayPattern\n";
-            testPattern(arrayPattern);
+      ULXR_COUT << ULXR_PCHAR("arrayPattern\n");
+      testPattern(arrayPattern);
 
-            std::cout << "callPattern1\n";
-            testCallPattern(callPattern1);
+      ULXR_COUT << ULXR_PCHAR("callPattern1\n");
+      testCallPattern(callPattern1);
 
-            std::cout << "callPattern2\n";
-            testCallPattern(callPattern2);
+      ULXR_COUT << ULXR_PCHAR("callPattern2\n");
+      testCallPattern(callPattern2);
 
-            std::cout << "emptyCallPattern1\n";
-            testCallPattern(emptyCallPattern1);
+      ULXR_COUT << ULXR_PCHAR("emptyCallPattern1\n");
+      testCallPattern(emptyCallPattern1);
 
-            std::cout << "emptyCallPattern2\n";
-            testCallPattern(emptyCallPattern2);
+      ULXR_COUT << ULXR_PCHAR("emptyCallPattern2\n");
+      testCallPattern(emptyCallPattern2);
 
-            std::cout << "respPattern\n";
-            testRespPattern(respPattern);
+      ULXR_COUT << ULXR_PCHAR("respPattern\n");
+      testRespPattern(respPattern);
 
-            std::cout << "implPattern\n";
-            testPattern(implPattern);
+      ULXR_COUT << ULXR_PCHAR("implPattern\n");
+      testPattern(implPattern);
 
-            std::cout << "emptyArrayPattern\n";
-            testRespPattern(emptyArrayPattern);
+      ULXR_COUT << ULXR_PCHAR("emptyArrayPattern\n");
+      testRespPattern(emptyArrayPattern);
 
-            std::cout << "emptyRespPattern\n";
-            testRespPattern(emptyRespPattern);
+      ULXR_COUT << ULXR_PCHAR("emptyRespPattern\n");
+      testRespPattern(emptyRespPattern);
 
-            std::cout << "emptyRespPattern\n";
-            testcrashPattern(crashPattern);
+      ULXR_COUT << ULXR_PCHAR("emptyRespPattern\n");
+      testcrashPattern(crashPattern);
 
-            std::cout << "emptyStructPattern\n";
-            testRespPattern(emptyStructPattern);
+      ULXR_COUT << ULXR_PCHAR("emptyStructPattern\n");
+      testRespPattern(emptyStructPattern);
 
-            ar.clear();
-            ar << ulxr::Integer(1) << ulxr::Integer(2) << ulxr::RpcString("3") << ulxr::Double(5.0);
+      ar.clear();
+      ar << ulxr::Integer(1) << ulxr::Integer(2) << ulxr::RpcString("3") << ulxr::Double(5.0);
 
-            ar << 11 << 22 << "33"
-               << 5.5 << true;
+// upon requst you may also use intrinsic types like bool, int, double, char*
+// #define ULXR_USE_INTRINSIC_VALUE_TYPES
+      ar << 11 << 22 << "33"
+#ifdef ULXR_UNICODE
+         << L"44"
+#endif
+         << 5.5 << true;
 
-            std::cout << ar.getXml(0) << std::endl;
-            std::cout << "====================================================\n";
+      ULXR_COUT << ar.getXml(0) << std::endl;
+      ULXR_COUT << ULXR_PCHAR("====================================================\n");
 
-            st.clear();
-            st
-                    << ulxr::make_member("before", i)
-                    << ulxr::make_member("Hallo", ar)
-                    << ulxr::make_member("Hallo double", 1.0)
-                    << ulxr::make_member("Hallo bool", true)
+      st.clear();
+      st
+          << ulxr::make_member(ULXR_PCHAR("before"), i)
+          << ulxr::make_member(ULXR_PCHAR("Hallo"), ar)
+#ifdef ULXR_UNICODE
+          << ulxr::make_member(ULXR_PCHAR("Hallo wstring"), L"wstring")
+#endif
+          << ulxr::make_member(ULXR_PCHAR("Hallo double"), 1.0)
+          << ulxr::make_member(ULXR_PCHAR("Hallo bool"), true)
 
 // upon requst you may also use the following construct
 // #define ULXR_STRUCT_MEMBER_FROM_NAME_VALUE
-                    << (std::string("second") << ulxr::Integer(2))
+          << (ulxr::CppString(ULXR_PCHAR("second")) << ulxr::Integer(2))
 
-                    << ulxr::make_member("difference", "1111")
-                    ;
+          << ulxr::make_member(ULXR_PCHAR("difference"), ULXR_PCHAR("1111"))
+      ;
 
-            std::cout << st.getXml(0) << std::endl;
-            std::cout << "====================================================\n";
+      ULXR_COUT << st.getXml(0) << std::endl;
+      ULXR_COUT << ULXR_PCHAR("====================================================\n");
 
-        }
-        catch(ulxr::Exception &ex)
-        {
-            std::cout << "Error occured: "
-                      << ex.why() << std::endl;
-            success = 1;
-        }
-#ifdef STRESS_IT
     }
+    catch(ulxr::Exception &ex)
+    {
+       ULXR_COUT << ULXR_PCHAR("Error occured: ")
+                 << ULXR_GET_STRING(ex.why()) << std::endl;
+       success = 1;
+    }
+#ifdef STRESS_IT
+  }
 #endif
 
-    int major, minor, patch;
-    bool debug;
-    std::string info;
-    ulxr::getVersion (major, minor, patch, debug, info);
+  int major, minor, patch;
+  bool debug;
+  ulxr::CppString info;
+  ulxr::getVersion (major, minor, patch, debug, info);
 
-    std::cout << "Version of the ulxmlrpcpp lib in use: "
-              << major << "." << minor << "." << patch << std::endl
-              << "Debugging was turned " << (debug ? "ON" : "OFF") << std::endl
-              << "Additional info: " << info << std::endl
-              << "Ready.\n";
+  ULXR_COUT << ulxr_i18n(ULXR_PCHAR("Version of the ulxmlrpcpp lib in use: "))
+            << major << ULXR_PCHAR(".") << minor << ULXR_PCHAR(".") << patch << std::endl
+            << ulxr_i18n(ULXR_PCHAR("Debugging was turned ")) << (debug ? ulxr_i18n(ULXR_PCHAR("ON")) : ulxr_i18n(ULXR_PCHAR("OFF"))) << std::endl
+            << ulxr_i18n(ULXR_PCHAR("Additional info: ")) << info << std::endl
+            << ulxr_i18n(ULXR_PCHAR("Ready.\n"));
 
-    return success;
+  return success;
 }
 
 

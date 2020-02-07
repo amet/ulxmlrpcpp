@@ -4,7 +4,7 @@
     begin                : Sun May 29 2005
     copyright            : (C) 2005 funtik <funt@alarit.com>
 
-    $Id: mprocess_server.cpp 11056 2011-10-18 13:20:50Z korosteleva $
+    $Id: mprocess_server.cpp 1151 2009-08-12 15:12:01Z ewald-arnold $
 
  ***************************************************************************/
 
@@ -26,21 +26,31 @@
  *
  ***************************************************************************/
 
+#define ULXR_USE_INTRINSIC_VALUE_TYPES
 
-#include <ulxmlrpcpp/ulxmlrpcpp.h>
-#include <ulxmlrpcpp/ulxr_tcpip_connection.h>
+#define ULXR_STRUCT_MEMBER_FROM_NAME_VALUE
+
+//#define 	ULXR_DEBUG_OUTPUT	0
+
+#include <ulxmlrpcpp/ulxmlrpcpp.h>  // always first header
+
+#include <iostream>
+#include <memory>
+
+#include <ulxmlrpcpp/ulxr_tcpip_connection.h>  // first, don't move: msvc #include bug
+
 #include <ulxmlrpcpp/ulxr_http_protocol.h>
 #include <ulxmlrpcpp/ulxr_except.h>
 #include <ulxmlrpcpp/ulxr_signature.h>
 #include <ulxmlrpcpp/ulxr_dispatcher.h>
-#include <ulxmlrpcpp/contrib/mprocess_rpc_server.h>
 
 #include <cstring>
-#include <memory>
 #include <cstdlib>
 #include <iostream>
 #include <fstream>
 #include <string>
+
+#include <ulxmlrpcpp/contrib/mprocess_rpc_server.h>
 
 #include <sys/types.h>
 #include <unistd.h>
@@ -53,110 +63,109 @@ int sst=0;
 ulxr::MethodResponse check (const ulxr::MethodCall &calldata)
 {
 
-    pid_t pid=getpid();
-    std::cout<<"It is a check query. Process handle pid: "<<pid<<std::endl;
+	pid_t pid=getpid();
+	std::cout<<"It is a check query. Process handle pid: "<<pid<<std::endl;
 
-    ulxr::RpcString rpcs = calldata.getParam(0);
-    std::string s = "It is RPC server."
-                    "Your query string is: "+rpcs.getString();
-    ulxr::MethodResponse resp;
-    resp.setResult(ulxr::RpcString(s));
-    return resp;
+	ulxr::RpcString rpcs = calldata.getParam(0);
+	ulxr::CppString s = ULXR_PCHAR("It is RPC server.")
+  			ULXR_PCHAR("Your query string is: ")+rpcs.getString();
+	ulxr::MethodResponse resp;
+	resp.setResult(ulxr::RpcString(s));
+	return resp;
 }
 
 ulxr::MethodResponse finish_server (const ulxr::MethodCall &/*calldata*/)
 {
-    std::string s = "Shutdown server.";
-    pid_t pid=getppid();
-    if(kill(pid,SIGTERM))
-    {
-        std::cout<<"Cannt finish server work"<<std::endl;
-    }
-    ulxr::MethodResponse resp;
-    resp.setResult(ulxr::RpcString(s));
-    return resp;
+	ulxr::CppString s = ULXR_PCHAR("Shutdown server.");
+	pid_t pid=getppid();
+	if(kill(pid,SIGTERM))
+	{
+	    std::cout<<"Cannt finish server work"<<std::endl;
+	}
+	ulxr::MethodResponse resp;
+	resp.setResult(ulxr::RpcString(s));
+	return resp;
 }
 
 void sigterm_handler(int /*signal*/)
 {
-    sst=1;
+	sst=1;
 }
 
 int main(int argc, char **argv)
 {
-    std::string host = "localhost";
-    if (argc > 1)
-        host = argv[1];
+	ulxr::CppString host = ULXR_PCHAR("localhost");
+	if (argc > 1)
+		host = ULXR_GET_STRING(argv[1]);
 
-    unsigned port = 32000;
-    if (argc > 2)
-        port = atoi(argv[2]);
-
-
-    std::cout << "Serving " << " securing " << " rpc requests at "
-              << host << ":" << port << std::endl;
-
-    try
-    {
-        std::auto_ptr<ulxr::TcpIpConnection> conn = std::auto_ptr<ulxr::TcpIpConnection>(new ulxr::TcpIpConnection (true, 0, port));
-
-        ulxr::HttpProtocol prot(conn.get());
-
-        server.getDispatcher()->setProtocol(&prot);
-        ulxr::Dispatcher *dsp=server.getDispatcher();
-
-        struct sigaction sa;
-        sigemptyset(&sa.sa_mask);
-        sa.sa_handler=sigterm_handler;
-        sa.sa_flags=SA_NOCLDSTOP | SA_RESTART;
-        sigaction(SIGTERM,&sa,0);
+	unsigned port = 32000;
+	if (argc > 2)
+    	port = ulxr_atoi(argv[2]);
 
 
-        ulxr::Struct ulxrStruct;
-        ulxrStruct.addMember("first",ulxr::Integer());
-        dsp->addMethod(ulxr::make_method(check),
-                       ulxr::Signature() << (ulxrStruct<<ulxr::make_member("uptime",ulxr::Integer()) ),
-                       "check_sig",
-                       ulxr::Signature()<<  ulxr::RpcString(),
-                       "Testcase return  string");
+	ULXR_COUT << ULXR_PCHAR("Serving ") << ULXR_PCHAR(" securing ") << ULXR_PCHAR(" rpc requests at ")
+            << host << ULXR_PCHAR(":") << port << std::endl;
 
-        dsp->addMethod(ulxr::make_method(check),
-                       ulxr::Signature() << ulxr::RpcString(),
-                       "check",
-                       ulxr::Signature() << ulxr::RpcString(),
-                       "Testcase return  string");
+	try{
+    	    std::auto_ptr<ulxr::TcpIpConnection> conn = std::auto_ptr<ulxr::TcpIpConnection>(new ulxr::TcpIpConnection (true, 0, port));
 
-        dsp->addMethod(ulxr::make_method(finish_server),
-                       ulxr::Signature() << ulxr::RpcString(),
-                       "finish_server",
-                       ulxr::Signature(),
-                       "Testcase shutdown server");
+	    ulxr::HttpProtocol prot(conn.get());
 
-        server.setState(funtik::MultiProcessRpcServer::RUN);
-        while((server.getState()==funtik::MultiProcessRpcServer::RUN) && sst==0)
-        {
-            server.printProcess();
+	    server.getDispatcher()->setProtocol(&prot);
+	    ulxr::Dispatcher *dsp=server.getDispatcher();
 
-            if(!server.waitConnection())
-            {
-                std::cout<<"signale receive"<<std::endl;
-                continue;
-            }
-            try {
-                server.handleRequest();
-            }
-            catch(ulxr::Exception& ex)
-            {
-                std::cout << "Error occured: " << ex.why() << std::endl;
-            }
+	    struct sigaction sa;
+    	sigemptyset(&sa.sa_mask);
+	sa.sa_handler=sigterm_handler;
+	sa.sa_flags=SA_NOCLDSTOP | SA_RESTART;
+	sigaction(SIGTERM,&sa,0);
 
-        }//while
-        server.terminateAllProcess(true);
-    }
-    catch(ulxr::Exception& ex)
-    {
-        std::cout << "Error occured: " << ex.why() << std::endl;
-    }
-    std::cout << "Well done, Ready.\n";
-    return 0;
+
+	    ulxr::Struct ulxrStruct;
+	    ulxrStruct.addMember(ULXR_PCHAR("first"),ulxr::Integer());
+    	    dsp->addMethod(ulxr::make_method(check),
+                     ulxr::Signature() << (ulxrStruct<<ulxr::make_member(ULXR_PCHAR("uptime"),ulxr::Integer()) ),
+                     ULXR_PCHAR("check_sig"),
+                     ulxr::Signature()<<  ulxr::RpcString(),
+                     ULXR_PCHAR("Testcase return  string"));
+
+	    dsp->addMethod(ulxr::make_method(check),
+                     ulxr::Signature() << ulxr::RpcString(),
+                     ULXR_PCHAR("check"),
+                     ulxr::Signature() << ulxr::RpcString(),
+                     ULXR_PCHAR("Testcase return  string"));
+
+	    dsp->addMethod(ulxr::make_method(finish_server),
+                     ulxr::Signature() << ulxr::RpcString(),
+                     ULXR_PCHAR("finish_server"),
+                     ulxr::Signature(),
+                     ULXR_PCHAR("Testcase shutdown server"));
+
+	    server.setState(funtik::MultiProcessRpcServer::RUN);
+   	    while((server.getState()==funtik::MultiProcessRpcServer::RUN) && sst==0)
+	    {
+			server.printProcess();
+
+			if(!server.waitConnection())
+			{
+		    	std::cout<<"signale receive"<<std::endl;
+			    continue;
+			}
+			try{
+				server.handleRequest();
+			}
+			catch(ulxr::Exception& ex)
+			{
+		    	ULXR_COUT << ULXR_PCHAR("Error occured: ") << ULXR_GET_STRING(ex.why()) << std::endl;
+			}
+
+	    }//while
+	    server.terminateAllProcess(true);
+	}
+	catch(ulxr::Exception& ex)
+	{
+		ULXR_COUT << ULXR_PCHAR("Error occured: ") << ULXR_GET_STRING(ex.why()) << std::endl;
+	}
+	ULXR_COUT << ULXR_PCHAR("Well done, Ready.\n");
+	return 0;
 }

@@ -5,7 +5,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: ulxr_callparse_base.cpp 10942 2011-09-13 14:35:52Z korosteleva $
+    $Id: ulxr_callparse_base.cpp 940 2006-12-30 18:22:05Z ewald-arnold $
 
  ***************************************************************************/
 
@@ -28,8 +28,8 @@
  ***************************************************************************/
 
 
-
-#include <ulxmlrpcpp/ulxmlrpcpp.h>
+#define ULXR_NEED_EXPORTS
+#include <ulxmlrpcpp/ulxmlrpcpp.h>  // always first header
 
 #include <ulxmlrpcpp/ulxr_callparse_base.h>
 
@@ -37,50 +37,50 @@
 namespace ulxr {
 
 
-    MethodCallParserBase::~MethodCallParserBase()
-    {
-    }
+ULXR_API_IMPL0 MethodCallParserBase::~MethodCallParserBase()
+{
+}
 
 
-    unsigned MethodCallParserBase::numParams() const
-    {
-        return methodcall.numParams();
-    }
+ULXR_API_IMPL(unsigned) MethodCallParserBase::numParams() const
+{
+  return methodcall.numParams();
+}
 
 
-    Value MethodCallParserBase::getParam(unsigned ind) const
-    {
-        return methodcall.getParam(ind);
-    }
+ULXR_API_IMPL(Value) MethodCallParserBase::getParam(unsigned ind) const
+{
+  return methodcall.getParam(ind);
+}
 
 
-    std::string MethodCallParserBase::getMethodName() const
-    {
-        return methodcall.getMethodName();
-    }
+ULXR_API_IMPL(CppString) MethodCallParserBase::getMethodName() const
+{
+  return methodcall.getMethodName();
+}
 
 
-    MethodCall MethodCallParserBase::getMethodCall() const
-    {
-        return methodcall;
-    }
+ULXR_API_IMPL(MethodCall) MethodCallParserBase::getMethodCall() const
+{
+  return methodcall;
+}
 
 
-    /*
-    string MethodCallParserBase::ValueState::getStateName() const
-    {
-      switch (state)
-      {
-        case eMethodCall      : return "eMethodCall";
-        case eMethodName      : return "eMethodName";
-        case eParams          : return "eParams";
-        case eParam           : return "eParam";
-        case eCallParserLast  : return "eCallParserLast";
-      }
+/*
+string MethodCallParserBase::ValueState::getStateName() const
+{
+  switch (state)
+  {
+    case eMethodCall      : return "eMethodCall";
+    case eMethodName      : return "eMethodName";
+    case eParams          : return "eParams";
+    case eParam           : return "eParam";
+    case eCallParserLast  : return "eCallParserLast";
+  }
 
-      return ValueParser::getStateName();
-    }
-    */
+  return ValueParser::getStateName();
+}
+*/
 
 }  // namespace ulxr
 

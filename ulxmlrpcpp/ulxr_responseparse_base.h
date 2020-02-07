@@ -5,7 +5,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: ulxr_responseparse_base.h 10942 2011-09-13 14:35:52Z korosteleva $
+    $Id: ulxr_responseparse_base.h 940 2006-12-30 18:22:05Z ewald-arnold $
 
  ***************************************************************************/
 
@@ -30,7 +30,7 @@
 #ifndef ULXR_RESPONSEPARSE_BASE_H
 #define ULXR_RESPONSEPARSE_BASE_H
 
-#include <ulxmlrpcpp/ulxmlrpcpp.h>
+#include <ulxmlrpcpp/ulxmlrpcpp.h>  // always first header
 
 #include <ulxmlrpcpp/ulxr_response.h>
 #include <ulxmlrpcpp/ulxr_value.h>
@@ -40,35 +40,35 @@
 namespace ulxr {
 
 
-    /** An xml parser for a MethodResponse.
-      * @ingroup grp_ulxr_parser
-      */
-    class  MethodResponseParserBase
-    {
-    public:
+/** An xml parser for a MethodResponse.
+  * @ingroup grp_ulxr_parser
+  */
+class ULXR_API_DECL0 MethodResponseParserBase
+{
+ public:
 
-        /** Gets the complete MethodResponse after parsing.
-          * @return  the method response
-          */
-        MethodResponse getMethodResponse();
+ /** Gets the complete MethodResponse after parsing.
+   * @return  the method response
+   */
+  MethodResponse getMethodResponse();
 
-        enum RespState
-        {
-            eMethodResponse = ValueParserBase::eValueParserLast,
-            eFault,
-            eParams,
-            eParam,
-            eResponseParserLast
-        };
+  enum RespState
+  {
+    eMethodResponse = ValueParserBase::eValueParserLast,
+    eFault,
+    eParams,
+    eParam,
+    eResponseParserLast
+  };
 
-        /** Destroy parser.
-          */
-        virtual ~MethodResponseParserBase();
+ /** Destroy parser.
+   */
+   virtual ~MethodResponseParserBase();
 
-    protected:
+ protected:
 
-        Value   method_value;
-    };
+    Value   method_value;
+};
 
 
 }  // namespace ulxr

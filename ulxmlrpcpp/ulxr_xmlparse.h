@@ -5,7 +5,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: ulxr_xmlparse.h 10942 2011-09-13 14:35:52Z korosteleva $
+    $Id: ulxr_xmlparse.h 940 2006-12-30 18:22:05Z ewald-arnold $
 
  ***************************************************************************/
 
@@ -30,59 +30,59 @@
 #ifndef ULXR_XMLPARSE
 #define ULXR_XMLPARSE
 
-#include <ulxmlrpcpp/ulxmlrpcpp.h>
+#include <ulxmlrpcpp/ulxmlrpcpp.h>  // always first header
 #include <ulxmlrpcpp/ulxr_expatwrap.h>
 
 
 namespace ulxr {
 
 
-    /** Base class for XML parsing with expat.
-      * @ingroup grp_ulxr_parser
-      */
-    class  XmlParser : public ExpatWrapper
-    {
-    public:
+/** Base class for XML parsing with expat.
+  * @ingroup grp_ulxr_parser
+  */
+class ULXR_API_DECL0 XmlParser : public ExpatWrapper
+{
+ public:
 
-        /** Constructs a parser.
-          */
-        XmlParser();
+ /** Constructs a parser.
+   */
+   XmlParser();
 
-    protected:
+ protected:
 
-        /** Checks if current and expected tag are the same.
-          * @param  current   the name of the current tag
-          * @param  expected  name of the expected tag
-          */
-        void assertEndElement(const char *current, const char *expected);
+ /** Checks if current and expected tag are the same.
+   * @param  current   the name of the current tag
+   * @param  expected  name of the expected tag
+   */
+   void assertEndElement(const char *current, const char *expected);
 
-        /** Tests if the current opening tag is to be parsed by this
-          * inheritance level or by the parent.
-          * Used ONLY internally.
-          * @param  name  the name of the current tag
-          * @param  atts  pointer to the current attributes (unused in XML-RPC)
-          * @return true: element has been handled
-          */
-        bool testStartElement(const XML_Char *name, const XML_Char **atts);
+ /** Tests if the current opening tag is to be parsed by this
+   * inheritance level or by the parent.
+   * Used ONLY internally.
+   * @param  name  the name of the current tag
+   * @param  atts  pointer to the current attributes (unused in XML-RPC)
+   * @return true: element has been handled
+   */
+   bool testStartElement(const XML_Char *name, const XML_Char **atts);
 
-        /** Tests if the current closing tag is to be parsed by this
-          * inheritance level or by the parent.
-          * Used ONLY internally.
-          * @param  name  the name of the current tag
-          * @return true: element has been handled
-          */
-        bool testEndElement(const XML_Char *name);
+ /** Tests if the current closing tag is to be parsed by this
+   * inheritance level or by the parent.
+   * Used ONLY internally.
+   * @param  name  the name of the current tag
+   * @return true: element has been handled
+   */
+   bool testEndElement(const XML_Char *name);
 
-    private:
+ private:
 
-        /** Parses the content of the current xml element.
-          * Used ONLY internally as callback from expat.
-          * The text from expat is encoded in UTF8.
-          * @param  s   the current chunk of text
-          * @param  len valid len.
-          */
-        virtual void charData(const XML_Char *s, int len);
-    };
+ /** Parses the content of the current xml element.
+   * Used ONLY internally as callback from expat.
+   * The text from expat is encoded in UTF8.
+   * @param  s   the current chunk of text
+   * @param  len valid len.
+   */
+   virtual void charData(const XML_Char *s, int len);
+};
 
 
 }  // namespace ulxr

@@ -5,7 +5,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: ulxr_xmlparse_base.cpp 10933 2011-09-09 09:44:29Z korosteleva $
+    $Id: ulxr_xmlparse_base.cpp 940 2006-12-30 18:22:05Z ewald-arnold $
 
  ***************************************************************************/
 
@@ -27,104 +27,112 @@
  *
  ***************************************************************************/
 
-
+#define ULXR_NEED_EXPORTS
 #include <ulxmlrpcpp/ulxmlrpcpp.h>
+
 #include <ulxmlrpcpp/ulxr_xmlparse_base.h>
 
 
 namespace ulxr {
 
 
-    XmlParserBase::XmlParserBase()
-    {
-        ULXR_TRACE("XmlParserBase::XmlParserBase()");
-        complete = false;
-    }
+ULXR_API_IMPL0 XmlParserBase::XmlParserBase()
+{
+  ULXR_TRACE(ULXR_PCHAR("XmlParserBase::XmlParserBase()"));
+  complete = false;
+}
 
 
-    XmlParserBase::~XmlParserBase()
-    {
-    }
+ULXR_API_IMPL0 XmlParserBase::~XmlParserBase()
+{
+}
 
 
-    void XmlParserBase::clearStates()
-    {
-        while (!states.empty())
-        {
-            delete states.top();
-            states.pop();
-        }
-    }
+ULXR_API_IMPL(void) XmlParserBase::clearStates()
+{
+  while (!states.empty())
+  {
+    delete states.top();
+    states.pop();
+  }
+}
 
-    bool XmlParserBase::isComplete() const
-    {
-        return complete;
-    }
+ULXR_API_IMPL(bool) XmlParserBase::isComplete() const
+{
+  return complete;
+}
 
 
-    void XmlParserBase::setComplete(bool comp)
-    {
-        complete = comp;
-    }
+ULXR_API_IMPL(void) XmlParserBase::setComplete(bool comp)
+{
+  complete = comp;
+}
 
 
 //////////////////////////////////////////////////////////////////////////
 //
 
-    XmlParserBase::ParserState::ParserState (unsigned st)
-        : state(st)
-        , prevstate(eUnknown)
-    {
-    }
+ULXR_API_IMPL0 XmlParserBase::ParserState::ParserState (unsigned st)
+  : state(st)
+  , prevstate(eUnknown)
+{
+}
 
 
-    XmlParserBase::ParserState::~ParserState()
-    {
-    }
+ULXR_API_IMPL0 XmlParserBase::ParserState::~ParserState()
+{
+}
 
 
-    unsigned XmlParserBase::ParserState::getParserState() const
-    {
-        return state;
-    }
+ULXR_API_IMPL(unsigned) XmlParserBase::ParserState::getParserState() const
+{
+  return state;
+}
 
 
-    unsigned XmlParserBase::ParserState::getPrevParserState() const
-    {
-        return prevstate;
-    }
+ULXR_API_IMPL(unsigned) XmlParserBase::ParserState::getPrevParserState() const
+{
+  return prevstate;
+}
 
 
-    void XmlParserBase::ParserState::setPrevParserState(unsigned prev)
-    {
-        prevstate = prev;
-    }
+ULXR_API_IMPL(void) XmlParserBase::ParserState::setPrevParserState(unsigned prev)
+{
+  prevstate = prev;
+}
 
 
-    std::string XmlParserBase::ParserState::getStateName() const
-    {
-        return "eUnknown";
-    }
+ULXR_API_IMPL(CppString) XmlParserBase::ParserState::getStateName() const
+{
+  return ULXR_PCHAR("eUnknown");
+}
 
 
-    void XmlParserBase::ParserState::appendCharData(const std::string &/*s*/)
-    {
-        ULXR_TRACE("XmlParserBase::ParserState::appendCharData(const std::string &)");
-    }
+ULXR_API_IMPL(void) XmlParserBase::ParserState::appendCharData(const std::string &/*s*/)
+{
+  ULXR_TRACE(ULXR_PCHAR("XmlParserBase::ParserState::appendCharData(const std::string &)"));
+#ifdef ULXR_UNICODE
+#else
+#endif
+}
 
 
-    void XmlParserBase::ParserState::appendCharData(const XML_Char *s, int len)
-    {
-        ULXR_TRACE("XmlParserBase::ParserState::appendCharData(const XML_Char *, int)");
-        cdata.append(s, len);
-    }
+ULXR_API_IMPL(void) XmlParserBase::ParserState::appendCharData(const XML_Char *s, int len)
+{
+  ULXR_TRACE(ULXR_PCHAR("XmlParserBase::ParserState::appendCharData(const XML_Char *, int)"));
+#ifdef ULXR_UNICODE
+  cdata += utf8ToUnicode(Cpp8BitString(s, len));
+#else
+  cdata.append(s, len);
+#endif
+}
 
 
-    std::string XmlParserBase::ParserState::getCharData() const
-    {
-        ULXR_TRACE("XmlParserBase::ParserState::getCharData()");
-        return cdata;
-    }
+ULXR_API_IMPL(CppString) XmlParserBase::ParserState::getCharData() const
+{
+  ULXR_TRACE(ULXR_PCHAR("XmlParserBase::ParserState::getCharData()"));
+  return cdata;
+}
 
 
 }  // namespace ulxr

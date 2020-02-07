@@ -5,7 +5,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: ulxr_callparse_base.h 10942 2011-09-13 14:35:52Z korosteleva $
+    $Id: ulxr_callparse_base.h 940 2006-12-30 18:22:05Z ewald-arnold $
 
 ***************************************************************************/
 
@@ -30,7 +30,7 @@
 #ifndef ULXR_CALLPARSE_BASE_H
 #define ULXR_CALLPARSE_BASE_H
 
-#include <ulxmlrpcpp/ulxmlrpcpp.h>
+#include <ulxmlrpcpp/ulxmlrpcpp.h>  // always first header
 
 #include <ulxmlrpcpp/ulxr_call.h>
 #include <ulxmlrpcpp/ulxr_valueparse_base.h>
@@ -39,51 +39,51 @@
 namespace ulxr {
 
 
-    /** An xml parser for a MethodCall.
-      * @ingroup grp_ulxr_parser
-      */
-    class  MethodCallParserBase
-    {
-    public:
+/** An xml parser for a MethodCall.
+  * @ingroup grp_ulxr_parser
+  */
+class ULXR_API_DECL0 MethodCallParserBase
+{
+ public:
 
-        /** Destroy parser.
-          */
-        virtual ~MethodCallParserBase();
+ /** Destroy parser.
+   */
+   virtual ~MethodCallParserBase();
 
-        /** Gets the number of parameters in the method call.
-          * @return amount of parameters.
-          */
-        unsigned numParams() const;
+ /** Gets the number of parameters in the method call.
+   * @return amount of parameters.
+   */
+   unsigned numParams() const;
 
-        /** Gets the amount of parameters in the method call.
-          * @param  ind    index of the parameter
-          * @return Value of the parameter
-          */
-        Value getParam(unsigned ind) const;
+ /** Gets the amount of parameters in the method call.
+   * @param  ind    index of the parameter
+   * @return Value of the parameter
+   */
+   Value getParam(unsigned ind) const;
 
-        /** Gets the name of the method.
-          * @return the method name.
-          */
-        std::string getMethodName() const;
+ /** Gets the name of the method.
+   * @return the method name.
+   */
+   CppString getMethodName() const;
 
-        /** Gets the complete MethodCall with all its data.
-          * @return the method.
-          */
-        MethodCall getMethodCall() const;
+ /** Gets the complete MethodCall with all its data.
+   * @return the method.
+   */
+   MethodCall getMethodCall() const;
 
-        enum CallState
-        {
-            eMethodCall = ValueParserBase::eValueParserLast,
-            eMethodName,
-            eParams,
-            eParam,
-            eCallParserLast
-        };
+   enum CallState
+   {
+     eMethodCall = ValueParserBase::eValueParserLast,
+     eMethodName,
+     eParams,
+     eParam,
+     eCallParserLast
+   };
 
-    protected:
+ protected:
 
-        MethodCall   methodcall;
-    };
+    MethodCall   methodcall;
+};
 
 
 }  // namespace ulxr

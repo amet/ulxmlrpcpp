@@ -5,7 +5,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: ulxr_except.cpp 10942 2011-09-13 14:35:52Z korosteleva $
+    $Id: ulxr_except.cpp 940 2006-12-30 18:22:05Z ewald-arnold $
 
  ***************************************************************************/
 
@@ -27,132 +27,141 @@
  *
  ***************************************************************************/
 
+#define ULXR_NEED_EXPORTS
+#include <ulxmlrpcpp/ulxmlrpcpp.h>  // always first header
 
-#include <ulxmlrpcpp/ulxmlrpcpp.h>
 #include <ulxmlrpcpp/ulxr_except.h>
 
 
 namespace ulxr {
 
-    Exception::Exception(int fc, const std::string &s) : std::exception(),
-        reason(s), faultcode(fc)
-    {
-        ULXR_DOUT("=== Exception: " << s);
-    }
+ULXR_API_IMPL0 Exception::Exception(int fc, const CppString &s)
+  :
+#ifdef ULXR_USE_STD_EXCEPTION
+   std::exception(),
+#endif
+   reason(s), faultcode(fc)
+{
+  ULXR_DOUT("=== Exception: " << s);
+}
 
 
-    Exception::~Exception() throw()
-    {
-    }
+ULXR_API_IMPL0 Exception::~Exception() throw()
+{
+}
 
 
-    std::string Exception::why() const
-    {
-        return reason;
-    }
+ULXR_API_IMPL(CppString) Exception::why() const
+{
+  return reason;
+}
 
 
-    const char* Exception::what() const throw()
-    {
-        what_helper = why();
-        return what_helper.c_str();
-    }
+#ifdef ULXR_USE_STD_EXCEPTION
+
+ULXR_API_DECL(const char *) Exception::what() const throw()
+{
+  what_helper = getLatin1(why());
+  return what_helper.c_str();
+}
+
+#endif
 
 
-    int Exception::getFaultCode() const
-    {
-        return faultcode;
-    }
-
-
-/////////////////////////////////////////////////////////////////////////
-
-
-    ConnectionException::ConnectionException(int fc, const std::string &phrase, int stat)
-        : Exception(fc, phrase)
-        , status(stat)
-    {
-    }
-
-
-    ConnectionException::~ConnectionException() throw()
-    {
-    }
-
-
-    int ConnectionException::getStatusCode() const
-    {
-        return status;
-    }
+ULXR_API_IMPL(int) Exception::getFaultCode() const
+{
+  return faultcode;
+}
 
 
 /////////////////////////////////////////////////////////////////////////
 
 
-    RuntimeException::RuntimeException(int fc, const std::string &s)
-        : Exception(fc, s)
-    {
-    }
+ULXR_API_IMPL0 ConnectionException::ConnectionException(int fc, const CppString &phrase, int stat)
+  : Exception(fc, phrase)
+  , status(stat)
+{
+}
 
 
-    RuntimeException::~RuntimeException() throw()
-    {
-    }
+ULXR_API_IMPL0 ConnectionException::~ConnectionException() throw()
+{
+}
 
 
-/////////////////////////////////////////////////////////////////////////
-
-
-    XmlException::XmlException(int fc, const std::string &s, int l,
-                               const std::string &err)
-        : Exception(fc, s), line(l), xmlerror(err)
-    {
-    }
-
-
-    XmlException::~XmlException() throw()
-    {
-    }
-
-
-    int XmlException::getErrorLine() const
-    {
-        return line;
-    }
-
-
-    std::string XmlException::getErrorString() const
-    {
-        return xmlerror;
-    }
+ULXR_API_IMPL(int) ConnectionException::getStatusCode() const
+{
+  return status;
+}
 
 
 /////////////////////////////////////////////////////////////////////////
 
 
-    ParameterException::ParameterException(int fc, const std::string &s)
-        : Exception(fc, s)
-    {
-    }
+ULXR_API_IMPL0 RuntimeException::RuntimeException(int fc, const CppString &s)
+  : Exception(fc, s)
+{
+}
 
 
-    ParameterException::~ParameterException()  throw()
-    {
-    }
+ULXR_API_IMPL0 RuntimeException::~RuntimeException() throw()
+{
+}
 
 
 /////////////////////////////////////////////////////////////////////////
 
 
-    MethodException::MethodException(int fc, const std::string &s)
-        : Exception(fc, s)
-    {
-    }
+ULXR_API_IMPL0 XmlException::XmlException(int fc, const CppString &s, int l,
+                                       const CppString &err)
+  : Exception(fc, s), line(l), xmlerror(err)
+{
+}
 
 
-    MethodException::~MethodException()  throw()
-    {
-    }
+ULXR_API_IMPL0 XmlException::~XmlException() throw()
+{
+}
+
+
+ULXR_API_IMPL(int) XmlException::getErrorLine() const
+{
+  return line;
+}
+
+
+ULXR_API_IMPL(CppString) XmlException::getErrorString() const
+{
+  return xmlerror;
+}
+
+
+/////////////////////////////////////////////////////////////////////////
+
+
+ULXR_API_IMPL0 ParameterException::ParameterException(int fc, const CppString &s)
+  : Exception(fc, s)
+{
+}
+
+
+ULXR_API_IMPL0 ParameterException::~ParameterException()  throw()
+{
+}
+
+
+/////////////////////////////////////////////////////////////////////////
+
+
+ULXR_API_IMPL0 MethodException::MethodException(int fc, const CppString &s)
+  : Exception(fc, s)
+{
+}
+
+
+ULXR_API_IMPL0 MethodException::~MethodException()  throw()
+{
+}
 
 
 }  // namespace ulxr

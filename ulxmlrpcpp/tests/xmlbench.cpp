@@ -4,7 +4,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: xmlbench.cpp 10942 2011-09-13 14:35:52Z korosteleva $
+    $Id: xmlbench.cpp 990 2007-07-14 15:00:39Z ewald-arnold $
 
 ***************************************************************************/
 
@@ -26,7 +26,7 @@
  *
  ***************************************************************************/
 
-#include <ulxmlrpcpp/ulxmlrpcpp.h>
+#include <ulxmlrpcpp/ulxmlrpcpp.h>  // always first header
 
 #include <iostream>
 #include <ctime>
@@ -37,66 +37,82 @@
 
 int main(int argc, char ** argv)
 {
-    int success = 0;
-    try
-    {
-        ulxr::Array arr;
-        arr.addItem(ulxr::Integer());
-        arr.addItem(ulxr::Boolean());
-        arr.addItem(ulxr::RpcString());
-        arr.addItem(ulxr::Double());
-        arr.addItem(ulxr::DateTime());
-        arr.addItem(ulxr::Base64());
-        arr.addItem(ulxr::Integer());
-        arr.addItem(ulxr::Boolean());
-        arr.addItem(ulxr::RpcString());
-        arr.addItem(ulxr::Double());
-        arr.addItem(ulxr::DateTime());
-        arr.addItem(ulxr::Base64());
-        arr.addItem(ulxr::Integer());
-        arr.addItem(ulxr::Boolean());
-        arr.addItem(ulxr::RpcString());
-        arr.addItem(ulxr::Double());
-        arr.addItem(ulxr::DateTime());
-        arr.addItem(ulxr::Base64());
-        arr.addItem(ulxr::Integer());
-        arr.addItem(ulxr::Boolean());
-        arr.addItem(ulxr::RpcString());
-        arr.addItem(ulxr::Double());
-        arr.addItem(ulxr::DateTime());
-        arr.addItem(ulxr::Base64());
+  ulxr::intializeLog4J(argv[0]);
 
-        const unsigned count = 5000;
+  int success = 0;
+  try
+  {
+    ulxr::Array arr;
+    arr.addItem(ulxr::Integer());
+    arr.addItem(ulxr::Boolean());
+    arr.addItem(ulxr::RpcString());
+    arr.addItem(ulxr::Double());
+    arr.addItem(ulxr::DateTime());
+    arr.addItem(ulxr::Base64());
+    arr.addItem(ulxr::Integer());
+    arr.addItem(ulxr::Boolean());
+    arr.addItem(ulxr::RpcString());
+    arr.addItem(ulxr::Double());
+    arr.addItem(ulxr::DateTime());
+    arr.addItem(ulxr::Base64());
+    arr.addItem(ulxr::Integer());
+    arr.addItem(ulxr::Boolean());
+    arr.addItem(ulxr::RpcString());
+    arr.addItem(ulxr::Double());
+    arr.addItem(ulxr::DateTime());
+    arr.addItem(ulxr::Base64());
+    arr.addItem(ulxr::Integer());
+    arr.addItem(ulxr::Boolean());
+    arr.addItem(ulxr::RpcString());
+    arr.addItem(ulxr::Double());
+    arr.addItem(ulxr::DateTime());
+    arr.addItem(ulxr::Base64());
 
-////////////////////////////////////////////////////////////////
-
-        std::cout << "Starting time measuring for generating xml data\n";
-
-        std::string us;
-        time_t starttime = time(0);
-        for (unsigned i1 = 0; i1 < count; ++i1)
-        {
-            us = arr.getXml();
-        }
-        std::cout << "Size of xml string in bytes: " << us.length() << std::endl;
-
-        time_t endtime = time(0);
-        time_t mins = (endtime - starttime) / 60;
-        time_t secs = (endtime - starttime) % 60;
-        std::cout << "Time needed for xml (ref: 95us): " << mins << ":"
-                  << secs << std::endl;
-
+    const unsigned count = 5000;
 
 ////////////////////////////////////////////////////////////////
 
-        /* Ratio val1_server/client:
-           4000 runs, debug output in file:
-               xml:   130s
-         */
-    }
-    catch(...)
+    ULXR_COUT << ULXR_PCHAR("Starting time measuring for generating xml data\n");
+
+    ulxr::CppString us;
+    ulxr_time_t starttime = ulxr_time(0);
+    for (unsigned i1 = 0; i1 < count; ++i1)
     {
-        success = 1;
+       us = arr.getXml();
     }
-    return success;
+    ULXR_COUT << ULXR_PCHAR("Size of xml string in bytes: ") << us.length() << std::endl;
+
+    ulxr_time_t endtime = ulxr_time(0);
+    ulxr_time_t mins = (endtime - starttime) / 60;
+    ulxr_time_t secs = (endtime - starttime) % 60;
+    ULXR_COUT << ULXR_PCHAR("Time needed for xml (ref: 95us): ") << mins << ULXR_PCHAR(":")
+              << secs << std::endl;
+
+    std::string ss;
+    starttime = ulxr_time(0);
+    for (unsigned i2 = 0; i2 < count; ++i2)
+    {
+       ss = arr.getWbXml();
+    }
+    ULXR_COUT << ULXR_PCHAR("Size of wbxml string in bytes: ") << ss.length() << std::endl;
+
+    endtime = ulxr_time(0);
+    mins = (endtime - starttime) / 60;
+    secs = (endtime - starttime) % 60;
+    ULXR_COUT << ULXR_PCHAR("Time needed for wbxml (ref: 100us): ") << mins << ULXR_PCHAR(":")
+              << secs << std::endl;
+
+////////////////////////////////////////////////////////////////
+
+  /* Ratio val1_server/client:
+     4000 runs, debug output in file:
+         wbxml:  30s,
+         xml:   130s
+   */
+  }
+  catch(...)
+  {
+    success = 1;
+  }
+  return success;
 }

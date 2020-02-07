@@ -5,7 +5,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: ulxr_xmlparse.cpp 10933 2011-09-09 09:44:29Z korosteleva $
+    $Id: ulxr_xmlparse.cpp 1157 2009-08-29 09:02:31Z ewald-arnold $
 
  ***************************************************************************/
 
@@ -27,7 +27,7 @@
  *
  ***************************************************************************/
 
-
+#define ULXR_NEED_EXPORTS
 #include <ulxmlrpcpp/ulxmlrpcpp.h>
 
 #include <cstring>
@@ -39,59 +39,59 @@
 namespace ulxr {
 
 
-    XmlParser::XmlParser()
-        : ExpatWrapper()
-    {
-    }
+ULXR_API_IMPL0 XmlParser::XmlParser()
+  : ExpatWrapper()
+{
+}
 
 
-    void XmlParser::charData(const XML_Char *s, int len)
-    {
-        ULXR_TRACE("XmlParser::charData(const XML_Char*, int)"
-                   /*             << "\n  len: " << len
-                                << "\n  s: >>"
-                                << std::string(s, len)
-                                << "<<"
-                   */
-                  );
-        states.top()->appendCharData(s, len);
-        ULXR_TRACE("XmlParser::charData(const XML_Char*, int) finished");
-    }
+ULXR_API_IMPL(void) XmlParser::charData(const XML_Char *s, int len)
+{
+  ULXR_TRACE(ULXR_PCHAR("XmlParser::charData(const XML_Char*, int)")
+/*             << ULXR_PCHAR("\n  len: ") << len
+             << ULXR_PCHAR("\n  s: >>")
+             << ULXR_GET_STRING(Cpp8BitString(s, len))
+             << ULXR_PCHAR("<<")
+*/
+            );
+  states.top()->appendCharData(s, len);
+  ULXR_TRACE(ULXR_PCHAR("XmlParser::charData(const XML_Char*, int) finished"));
+}
 
 
-    bool XmlParser::testStartElement(const XML_Char *name, const XML_Char ** /*atts*/)
-    {
-        throw XmlException(NotWellformedError,
-                           "Problem while parsing xml structure",
-                           getCurrentLineNumber(),
-                           "unexpected opening tag: "+std::string(name) );
-    }
+ULXR_API_IMPL(bool) XmlParser::testStartElement(const XML_Char *name, const XML_Char ** /*atts*/)
+{
+  throw XmlException(NotWellformedError,
+                  ulxr_i18n(ULXR_PCHAR("Problem while parsing xml structure")),
+                  getCurrentLineNumber(),
+                  ulxr_i18n(ULXR_PCHAR("unexpected opening tag: "))+ULXR_GET_STRING(name) );
+}
 
 
-    bool XmlParser::testEndElement(const XML_Char *name)
-    {
-        throw XmlException(NotWellformedError,
-                           "Problem while parsing xml structure",
-                           getCurrentLineNumber(),
-                           "unexpected closing tag: "+std::string(name) );
-    }
+ULXR_API_IMPL(bool) XmlParser::testEndElement(const XML_Char *name)
+{
+  throw XmlException(NotWellformedError,
+                  ulxr_i18n(ULXR_PCHAR("Problem while parsing xml structure")),
+                  getCurrentLineNumber(),
+                  ulxr_i18n(ULXR_PCHAR("unexpected closing tag: "))+ULXR_GET_STRING(name) );
+}
 
 
-    void XmlParser::assertEndElement(const char *current, const char *expected)
-    {
-        ULXR_TRACE("XmlParser::assertEndElement(const char*, const char*): "
-                   << "\n curr: "
-                   << current
-                   << " exp: "
-                   << expected
-                  );
-        if (0 != strcmp(current, expected))
-            throw XmlException(NotWellformedError,
-                               (std::string)"Unexpected xml tag: " + current
-                               + ", wanted: " + expected,
-                               getCurrentLineNumber(),
-                               "Document not wellformed");
-    }
+ULXR_API_IMPL(void) XmlParser::assertEndElement(const char *current, const char *expected)
+{
+  ULXR_TRACE(ULXR_PCHAR("XmlParser::assertEndElement(const char*, const char*): ")
+             << ULXR_PCHAR("\n curr: ")
+             << ULXR_GET_STRING(current)
+             << ULXR_PCHAR(" exp: ")
+             << ULXR_GET_STRING(expected)
+             );
+  if (0 != strcmp(current, expected))
+    throw XmlException(NotWellformedError,
+                       (CppString) ulxr_i18n(ULXR_PCHAR("Unexpected xml tag: ")) + ULXR_GET_STRING(current)
+                       + ulxr_i18n(ULXR_PCHAR(", wanted: ")) + ULXR_GET_STRING(expected),
+                       getCurrentLineNumber(),
+                       ulxr_i18n(ULXR_PCHAR("Document not wellformed")));
+}
 
 
 }  // namespace ulxr

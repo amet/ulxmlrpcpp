@@ -5,7 +5,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: ulxr_responseparse.h 10942 2011-09-13 14:35:52Z korosteleva $
+    $Id: ulxr_responseparse.h 940 2006-12-30 18:22:05Z ewald-arnold $
 
  ***************************************************************************/
 
@@ -30,7 +30,7 @@
 #ifndef ULXR_RESPONSEPARSE_H
 #define ULXR_RESPONSEPARSE_H
 
-#include <ulxmlrpcpp/ulxmlrpcpp.h>
+#include <ulxmlrpcpp/ulxmlrpcpp.h>  // always first header
 
 #include <ulxmlrpcpp/ulxr_valueparse.h>
 #include <ulxmlrpcpp/ulxr_responseparse_base.h>
@@ -39,46 +39,46 @@
 namespace ulxr {
 
 
-    /** An xml parser for a MethodResponse.
-      * @ingroup grp_ulxr_parser
-      */
-    class  MethodResponseParser : public ValueParser,
-        public MethodResponseParserBase
-    {
-    public:
+/** An xml parser for a MethodResponse.
+  * @ingroup grp_ulxr_parser
+  */
+class ULXR_API_DECL0 MethodResponseParser : public ValueParser,
+                                         public MethodResponseParserBase
+{
+ public:
 
-    protected:
+ protected:
 
-        /** Parses the current opening XML tag.
-          * Used ONLY internally as callback from expat.
-          * @param  name  the name of the current tag
-          * @param  atts  to the current attributs (unused in XML-RPC)
-          */
-        virtual void startElement(const XML_Char *name,
-                                  const XML_Char **atts);
+ /** Parses the current opening XML tag.
+   * Used ONLY internally as callback from expat.
+   * @param  name  the name of the current tag
+   * @param  atts  to the current attributs (unused in XML-RPC)
+   */
+   virtual void startElement(const XML_Char *name,
+                             const XML_Char **atts);
 
-        /** Parses the current closing XML tag.
-          * Used ONLY internally as callback from expat.
-          * @param  name  the name of the current tag
-          */
-        virtual void endElement(const XML_Char* name);
+ /** Parses the current closing XML tag.
+   * Used ONLY internally as callback from expat.
+   * @param  name  the name of the current tag
+   */
+   virtual void endElement(const XML_Char* name);
 
-        /** Tests if the current opening tag is to be parsed by this
-          * inheritance level or by the parent.
-          * Used ONLY internally.
-          * @param  name  the name of the current tag
-          * @param  atts  pointer to the current attributs (unused in XML-RPC)
-          */
-        bool testStartElement(const XML_Char *name,
-                              const XML_Char **atts);
+ /** Tests if the current opening tag is to be parsed by this
+   * inheritance level or by the parent.
+   * Used ONLY internally.
+   * @param  name  the name of the current tag
+   * @param  atts  pointer to the current attributs (unused in XML-RPC)
+   */
+   bool testStartElement(const XML_Char *name,
+                         const XML_Char **atts);
 
-        /** Tests if the current closing tag is to be parsed by this
-          * inheritance level or by the parent.
-          * Used ONLY internally.
-          * @param  name  the name of the current tag
-          */
-        bool testEndElement(const XML_Char *name);
-    };
+ /** Tests if the current closing tag is to be parsed by this
+   * inheritance level or by the parent.
+   * Used ONLY internally.
+   * @param  name  the name of the current tag
+   */
+   bool testEndElement(const XML_Char *name);
+};
 
 
 }  // namespace ulxr

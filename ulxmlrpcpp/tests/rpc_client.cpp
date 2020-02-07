@@ -4,7 +4,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: rpc_client.cpp 11054 2011-10-18 13:00:59Z korosteleva $
+    $Id: rpc_client.cpp 1151 2009-08-12 15:12:01Z ewald-arnold $
 
  ***************************************************************************/
 
@@ -26,7 +26,7 @@
  *
  ***************************************************************************/
 
-#include <ulxmlrpcpp/ulxmlrpcpp.h>
+#include <ulxmlrpcpp/ulxmlrpcpp.h>  // always first header
 
 #include <cstdlib>
 #include <iostream>
@@ -40,211 +40,237 @@
 #include <ulxmlrpcpp/ulxr_requester.h>
 #include <ulxmlrpcpp/ulxr_value.h>
 #include <ulxmlrpcpp/ulxr_except.h>
+#include <ulxmlrpcpp/ulxr_log4j.h>
 
 #include "util.c"
 
 int main(int argc, char **argv)
 {
-    try
+  try
+  {
+    ulxr::intializeLog4J(argv[0]);
+    ulxr::getLogger4J()->send(ULXR_PCHAR("DEBUG"),
+                              ULXR_PCHAR("client started"),
+                              ULXR_GET_STRING(__FILE__),
+                              __LINE__);
+
+    ulxr::CppString host = ULXR_PCHAR("localhost");
+    if (argc > 1)
+      host = ULXR_GET_STRING(argv[1]);
+
+    unsigned port = 32000;
+    if (argc > 2)
+      port = ulxr_atoi(argv[2]);
+
+    bool big = haveOption(argc, argv, "big");
+    bool secure = haveOption(argc, argv, "ssl");
+    bool chunked = haveOption(argc, argv, "chunked");
+    bool persistent = haveOption(argc, argv, "persistent");
+
+    ulxr::CppString sec = ULXR_PCHAR("unsecured");
+    if (secure)
+      sec = ULXR_PCHAR("secured");
+
+    ULXR_COUT << ULXR_PCHAR("Requesting ") << sec << ULXR_PCHAR(" rpc calls at ")
+              << host << ULXR_PCHAR(":") << port << std::endl
+              << ULXR_PCHAR("Chunked transfer: ") << chunked << std::endl;
+
+    std::auto_ptr<ulxr::TcpIpConnection> conn;
+#ifdef ULXR_INCLUDE_SSL_STUFF
+    if (secure)
+      conn.reset(new ulxr::SSLConnection (false, host, port));
+    else
+#endif
+#ifdef _MSC_VER
     {
-        ulxr::intializeLogger(argv[0]);
-
-        std::string host = "localhost";
-        if (argc > 1)
-            host = argv[1];
-
-        unsigned port = 32000;
-        if (argc > 2)
-            port = atoi(argv[2]);
-
-        bool big = haveOption(argc, argv, "big");
-        bool secure = haveOption(argc, argv, "ssl");
-        bool chunked = haveOption(argc, argv, "chunked");
-
-        std::string sec = "unsecured";
-        if (secure)
-            sec = "secured";
-
-        std::cout << "Requesting " << sec << " rpc calls at "
-                  << host << ":" << port << std::endl
-                  << "Chunked transfer: " << chunked << std::endl;
-
-        std::auto_ptr<ulxr::TcpIpConnection> conn;
-        if (secure)
-            conn.reset(new ulxr::SSLConnection (false, host, port));
-        else
-            conn.reset(new ulxr::TcpIpConnection (false, host, port));
-
-        ulxr::HttpProtocol prot(conn.get());
-        prot.setChunkedTransfer(chunked);
-        ulxr::Requester client(&prot);
-
-        time_t starttime = time(0);
-
-        ulxr::MethodCall testcall_shutdown ("testcall_shutdown");
-
-        ulxr::MethodCall testcall_function ("testcall_function");
-        testcall_function.addParam(ulxr::Integer(456))
-        .addParam(ulxr::Integer(123));
-
-        ulxr::MethodCall stringcall ("stringcall");
-//    std::string big_str (5 * 1000 * 1000, 'x');
-        std::string big_str (10 * 1000 * 100, '<');
-        stringcall.addParam(ulxr::RpcString(big_str));
-
-        ulxr::MethodCall testcall_static ("testcall_in_class_static");
-
-        ulxr::MethodCall testcall_dynamic ("testcall_in_class_dynamic");
-        testcall_dynamic.addParam(ulxr::Integer(456));
-
-        /////////////////////////////
-
-        ulxr::MethodCall list_methods ("system.listMethods");
-
-        ulxr::MethodCall method_help ("system.methodHelp");
-        method_help.addParam(ulxr::RpcString("system.methodHelp"));
-
-        ulxr::MethodCall method_sig ("system.methodSignature");
-        method_sig.addParam(ulxr::RpcString("system.methodSignature"));
-
-        ulxr::MethodCall method_sig2 ("system.methodSignature");
-        method_sig2.addParam(ulxr::RpcString("testcall_in_class_dynamic"));
-
-        ulxr::MethodResponse resp;
-
-        /////////////////////////////
-
-        std::cout << "call list_methods: \n";
-        prot.setAcceptCookies(true);
-        prot.setClientCookie(" cookie-test=123 ");
-        resp = client.call(list_methods, "/RPC2");
-
-#ifdef ULXR_DEBUG_OUTPUT
-        std::cout << "call result: \n";
-        std::cout << resp.getXml(0) << std::endl;
+   	  std::auto_ptr<ulxr::TcpIpConnection> temp(new ulxr::TcpIpConnection (false, host, port));
+	  conn = temp;
+	}
+#else
+      conn.reset(new ulxr::TcpIpConnection (false, host, port));
 #endif
 
-        if (!prot.hasCookie() || prot.getCookie() != "cookie-test=123; received=true")
-        {
-            std::cout << "bad received cookie: " << prot.getCookie() << std::endl;
-            return 1;
-        }
+    ulxr::HttpProtocol prot(conn.get());
+    prot.setChunkedTransfer(chunked);
+    prot.setPersistent(persistent);
+    ulxr::Requester client(&prot);
 
-        std::cout << "call method_help: \n";
-        prot.setClientCookie("  cookie-test-1=123;   cookie-test-2=456;   cookie-test-3=789  ");
-        resp = client.call(method_help, "/RPC2");
+    if (prot.isPersistent())
+      ULXR_COUT << ULXR_PCHAR("Using persistent connections\n") ;
+    else
+      ULXR_COUT << ULXR_PCHAR("Using non-persistent connections\n") ;
 
-#ifdef ULXR_DEBUG_OUTPUT
-        std::cout << "call result: \n";
-        std::cout << resp.getXml(0) << std::endl;
-#endif
+    ulxr_time_t starttime = ulxr_time(0);
 
-        if (!prot.hasCookie() || prot.getCookie() != "cookie-test-1=123; cookie-test-2=456; cookie-test-3=789; received=true")
-        {
-            std::cout << "bad received cookie: " << prot.getCookie() << std::endl;
-            return 1;
-        }
+    ulxr::MethodCall testcall_shutdown (ULXR_PCHAR("testcall_shutdown"));
 
-        std::cout << "call method_sig: \n";
-        prot.setClientCookie("");
-        resp = client.call(method_sig, "/RPC2");
+    ulxr::MethodCall testcall_function (ULXR_PCHAR("testcall_function"));
+    testcall_function.addParam(ulxr::Integer(456))
+                     .addParam(ulxr::Integer(123));
 
-        std::cout << "hostname: " << conn->getHostName() << std::endl;
-        std::cout << "peername: " << conn->getPeerName() << std::endl;
+    ulxr::MethodCall stringcall (ULXR_PCHAR("stringcall"));
+//    ulxr::CppString big_str (5 * 1000 * 1000, ULXR_CHAR('x'));
+    ulxr::CppString big_str (10 * 1000 * 100, ULXR_CHAR('<'));
+    stringcall.addParam(ulxr::RpcString(big_str));
 
-#ifdef ULXR_DEBUG_OUTPUT
-        std::cout << "call result: \n";
-        std::cout << resp.getXml(0) << std::endl;
-#endif
+    ulxr::MethodCall testcall_static (ULXR_PCHAR("testcall_in_class_static"));
 
-        if (!prot.hasCookie() || prot.getCookie() != "newcookie=mycookie")
-        {
-            std::cout << "bad received cookie: " << prot.getCookie() << std::endl;
-            return 1;
-        }
+    ulxr::MethodCall testcall_dynamic (ULXR_PCHAR("testcall_in_class_dynamic"));
+    testcall_dynamic.addParam(ulxr::Integer(456));
 
-        std::cout << "call method_sig2: \n";
-        resp = client.call(method_sig2, "/RPC2");
+    /////////////////////////////
 
-#ifdef ULXR_DEBUG_OUTPUT
-        std::cout << "call result: \n";
-        std::cout << resp.getXml(0) << std::endl;
-#endif
+    ulxr::MethodCall list_methods (ULXR_PCHAR("system.listMethods"));
 
-        std::cout << "call testcall_function: \n";
-        resp = client.call(testcall_function, "/RPC2");
+    ulxr::MethodCall method_help (ULXR_PCHAR("system.methodHelp"));
+    method_help.addParam(ulxr::RpcString(ULXR_PCHAR("system.methodHelp")));
 
-#ifdef ULXR_DEBUG_OUTPUT
-        std::cout << "call result: \n";
-        std::cout << resp.getXml(0) << std::endl;
-#endif
+    ulxr::MethodCall method_sig (ULXR_PCHAR("system.methodSignature"));
+    method_sig.addParam(ulxr::RpcString(ULXR_PCHAR("system.methodSignature")));
 
-        std::cout << "call testcall_static: \n";
-        resp = client.call(testcall_static, "/RPC2");
+    ulxr::MethodCall method_sig2 (ULXR_PCHAR("system.methodSignature"));
+    method_sig2.addParam(ulxr::RpcString(ULXR_PCHAR("testcall_in_class_dynamic")));
+
+    ulxr::MethodResponse resp;
+
+    /////////////////////////////
+
+    ULXR_COUT << ULXR_PCHAR("call list_methods: \n");
+    prot.setAcceptCookies(true);
+    prot.setClientCookie(ULXR_PCHAR(" cookie-test=123 "));
+    resp = client.call(list_methods, ULXR_PCHAR("/RPC2"));
 
 #ifdef ULXR_DEBUG_OUTPUT
-        std::cout << "call result: \n";
-        std::cout << resp.getXml(0) << std::endl;
+    ULXR_COUT << ULXR_PCHAR("call result: \n");
+    ULXR_COUT << resp.getXml(0) << std::endl;
 #endif
 
-        std::cout << "call testcall_dynamic: \n";
-        resp = client.call(testcall_dynamic, "/RPC2");
-
-#ifdef ULXR_DEBUG_OUTPUT
-        std::cout << "call result: \n";
-        std::cout << resp.getXml(0) << std::endl;
-#endif
-
-        std::string ret_str;
-        if (big)
-        {
-            std::cout << "call stringcall: \n";
-            resp = client.call(stringcall, "/RPC2");
-
-            ret_str = resp.getXml(0);
-
-#ifdef ULXR_DEBUG_OUTPUT
-            std::cout << "call result: \n";
-
-            std::cout << "call result: [No need to display "
-                      << ret_str.length()
-                      << " bytes.]\n";
-            //    std::cout << resp.getXml(0) << std::endl;
-#endif
-        }
-
-        std::cout << "call testcall_shutdown: \n";
-        resp = client.call(testcall_shutdown, "/RPC2");
-
-#ifdef ULXR_DEBUG_OUTPUT
-        std::cout << "call result: \n";
-        std::cout << resp.getXml(0) << std::endl;
-#endif
-
-        time_t endtime = time(0);
-        time_t totalsecs = endtime - starttime;
-        time_t mins = totalsecs / 60;
-        time_t secs = totalsecs % 60;
-        std::cout << "\nOverall time needed: "
-                  << mins << ":" << secs << std::endl;
-        if (big)
-            std::cout << "Two-way transmission of "
-                      << ret_str.length() << " bytes"
-                      << "\nKBytes/s: " << (ret_str.length() / totalsecs / 1024 * 2) << std::endl;
+    if (!prot.hasCookie() || prot.getCookie() != ULXR_PCHAR("cookie-test=123; received=true"))
+    {
+      ULXR_COUT << ULXR_PCHAR("bad received cookie: ") << prot.getCookie() << std::endl;
+      return 1;
     }
 
-    catch(ulxr::Exception &ex)
+    ULXR_COUT << ULXR_PCHAR("call method_help: \n");
+    prot.setClientCookie(ULXR_PCHAR("  cookie-test-1=123;   cookie-test-2=456;   cookie-test-3=789  "));
+    resp = client.call(method_help, ULXR_PCHAR("/RPC2"));
+
+#ifdef ULXR_DEBUG_OUTPUT
+    ULXR_COUT << ULXR_PCHAR("call result: \n");
+    ULXR_COUT << resp.getXml(0) << std::endl;
+#endif
+
+    if (!prot.hasCookie() || prot.getCookie() != ULXR_PCHAR("cookie-test-1=123; cookie-test-2=456; cookie-test-3=789; received=true"))
     {
-        std::cout << "Error occured: " << ex.why() << std::endl;
-        return 1;
+      ULXR_COUT << ULXR_PCHAR("bad received cookie: ") << prot.getCookie() << std::endl;
+      return 1;
     }
 
-    catch(...)
+    ULXR_COUT << ULXR_PCHAR("call method_sig: \n");
+    prot.setClientCookie(ULXR_PCHAR(""));
+    resp = client.call(method_sig, ULXR_PCHAR("/RPC2"));
+
+    ULXR_COUT << ULXR_PCHAR("hostname: ") << conn->getHostName() << std::endl;
+    ULXR_COUT << ULXR_PCHAR("peername: ") << conn->getPeerName() << std::endl;
+
+#ifdef ULXR_DEBUG_OUTPUT
+    ULXR_COUT << ULXR_PCHAR("call result: \n");
+    ULXR_COUT << resp.getXml(0) << std::endl;
+#endif
+
+    if (!prot.hasCookie() || prot.getCookie() != ULXR_PCHAR("newcookie=mycookie"))
     {
-        std::cout << "unknown Error occured.\n";
-        return 1;
+      ULXR_COUT << ULXR_PCHAR("bad received cookie: ") << prot.getCookie() << std::endl;
+      return 1;
     }
 
-    std::cout << "Well done, Ready.\n";
-    return 0;
+    ULXR_COUT << ULXR_PCHAR("call method_sig2: \n");
+    resp = client.call(method_sig2, ULXR_PCHAR("/RPC2"));
+
+#ifdef ULXR_DEBUG_OUTPUT
+    ULXR_COUT << ULXR_PCHAR("call result: \n");
+    ULXR_COUT << resp.getXml(0) << std::endl;
+#endif
+
+    ULXR_COUT << ULXR_PCHAR("call testcall_function: \n");
+    resp = client.call(testcall_function, ULXR_PCHAR("/RPC2"));
+
+#ifdef ULXR_DEBUG_OUTPUT
+    ULXR_COUT << ULXR_PCHAR("call result: \n");
+    ULXR_COUT << resp.getXml(0) << std::endl;
+#endif
+
+    ULXR_COUT << ULXR_PCHAR("call testcall_static: \n");
+    resp = client.call(testcall_static, ULXR_PCHAR("/RPC2"));
+
+#ifdef ULXR_DEBUG_OUTPUT
+    ULXR_COUT << ULXR_PCHAR("call result: \n");
+    ULXR_COUT << resp.getXml(0) << std::endl;
+#endif
+
+    ULXR_COUT << ULXR_PCHAR("call testcall_dynamic: \n");
+    resp = client.call(testcall_dynamic, ULXR_PCHAR("/RPC2"));
+
+#ifdef ULXR_DEBUG_OUTPUT
+    ULXR_COUT << ULXR_PCHAR("call result: \n");
+    ULXR_COUT << resp.getXml(0) << std::endl;
+#endif
+
+    ulxr::CppString ret_str;
+    if (big)
+    {
+      ULXR_COUT << ULXR_PCHAR("call stringcall: \n");
+      resp = client.call(stringcall, ULXR_PCHAR("/RPC2"));
+
+      ret_str = resp.getXml(0);
+
+#ifdef ULXR_DEBUG_OUTPUT
+      ULXR_COUT << ULXR_PCHAR("call result: \n");
+
+      ULXR_COUT << ULXR_PCHAR("call result: [No need to display ")
+                << ret_str.length()
+                << ULXR_PCHAR(" bytes.]\n");
+  //    ULXR_COUT << resp.getXml(0) << std::endl;
+#endif
+    }
+
+    ULXR_COUT << ULXR_PCHAR("call testcall_shutdown: \n");
+    resp = client.call(testcall_shutdown, ULXR_PCHAR("/RPC2"));
+
+#ifdef ULXR_DEBUG_OUTPUT
+    ULXR_COUT << ULXR_PCHAR("call result: \n");
+    ULXR_COUT << resp.getXml(0) << std::endl;
+#endif
+
+    if (prot.isPersistent())
+      ULXR_COUT << ULXR_PCHAR("Used persistent connections\n") ;
+    else
+      ULXR_COUT << ULXR_PCHAR("Used non-persistent connections\n") ;
+
+    ulxr_time_t endtime = ulxr_time(0);
+    ulxr_time_t totalsecs = endtime - starttime;
+    ulxr_time_t mins = totalsecs / 60;
+    ulxr_time_t secs = totalsecs % 60;
+    ULXR_COUT << ULXR_PCHAR("\nOverall time needed: ")
+               << mins << ULXR_PCHAR(":") << secs << std::endl;
+    if (big)
+      ULXR_COUT << ULXR_PCHAR("Two-way transmission of ")
+                << ret_str.length() << ULXR_PCHAR(" bytes")
+                << ULXR_PCHAR("\nKBytes/s: ") << (ret_str.length() / totalsecs / 1024 * 2) << std::endl;
+  }
+
+  catch(ulxr::Exception &ex)
+  {
+     ULXR_COUT << ULXR_PCHAR("Error occured: ") << ULXR_GET_STRING(ex.why()) << std::endl;
+     return 1;
+  }
+
+  catch(...)
+  {
+     ULXR_COUT << ULXR_PCHAR("unknown Error occured.\n");
+     return 1;
+  }
+
+  ULXR_COUT << ULXR_PCHAR("Well done, Ready.\n");
+  return 0;
 }

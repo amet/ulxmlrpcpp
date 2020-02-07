@@ -4,7 +4,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: secure_client.cpp 10942 2011-09-13 14:35:52Z korosteleva $
+    $Id: secure_client.cpp 1151 2009-08-12 15:12:01Z ewald-arnold $
 
  ***************************************************************************/
 
@@ -28,7 +28,7 @@
 
 //#define DEBUG
 
-#include <ulxmlrpcpp/ulxmlrpcpp.h>
+#include <ulxmlrpcpp/ulxmlrpcpp.h>  // always first header
 
 #include <cstdlib>
 #include <iostream>
@@ -44,74 +44,75 @@
 
 #include "crypt.cpp"
 
+
 int main(int argc, char **argv)
 {
-    try
+  try
+  {
+    ulxr::intializeLog4J(argv[0]);
+
+    ulxr::CppString host = ULXR_PCHAR("localhost");
+    if (argc > 1)
+      host = ULXR_GET_STRING(argv[1]);
+
+    unsigned port = 32003;
+    if (argc > 2)
+      port = ulxr_atoi(argv[2]);
+
+    ulxr::TcpIpConnection conn (false, host, port);
+    ulxr::HttpProtocol prot(&conn);
+    ulxr::Requester client(&prot);
+
+    // prepare call
+    ulxr::MethodCall secure_shutdown (ULXR_PCHAR("secure_shutdown"));
+
+    // put call in encrypted envelope, base64 encoded  for transmission
+    ulxr::MethodCall secureDispatcher (ULXR_PCHAR("secureDispatcher"));
+    secureDispatcher.addParam(ulxr::Base64(encrypt(secure_shutdown.getXml(), ULXR_PCHAR(""))));
+    ULXR_TRACE(secure_shutdown.getXml());
+
+    // send call
+    ulxr::MethodResponse resp = client.call(secureDispatcher, ULXR_PCHAR("/SecureRPC"), ULXR_PCHAR("ali-baba"), ULXR_PCHAR("open-sesame"));
+    if (resp.isOK() )
     {
-        ulxr::intializeLogger(argv[0]);
+      // base64-decode and decrypt response
+      ulxr::Base64 respdata = resp.getResult();
+      ULXR_TRACE(respdata.getString());
 
-        std::string host = "localhost";
-        if (argc > 1)
-            host = argv[1];
+      ulxr::Cpp8BitString xml_resp = ulxr::getLatin1(decrypt(respdata.getString(), ULXR_PCHAR("")));
+      ULXR_TRACE(ULXR_GET_STRING(xml_resp));
 
-        unsigned port = 32003;
-        if (argc > 2)
-            port = atoi(argv[2]);
+      // parse response to access result
+      ulxr::MethodResponseParser parser;
+      bool done = false;
+      if (!parser.parse(xml_resp.data(), xml_resp.length(), done))
+      {
+        throw ulxr::XmlException(parser.mapToFaultCode(parser.getErrorCode()),
+                               ulxr_i18n(ULXR_PCHAR("Problem while parsing decrypted xml request")),
+                               parser.getCurrentLineNumber(),
+                               ULXR_GET_STRING(parser.getErrorString(parser.getErrorCode())));
+      }
 
-        ulxr::TcpIpConnection conn (false, host, port);
-        ulxr::HttpProtocol prot(&conn);
-        ulxr::Requester client(&prot);
+      resp = parser.getMethodResponse();
 
-        // prepare call
-        ulxr::MethodCall secure_shutdown ("secure_shutdown");
-
-        // put call in encrypted envelope, base64 encoded  for transmission
-        ulxr::MethodCall secureDispatcher ("secureDispatcher");
-        secureDispatcher.addParam(ulxr::Base64(ulxr::encodeBase64(secure_shutdown.getXml())));
-        ULXR_TRACE(secure_shutdown.getXml());
-
-        // send call
-        ulxr::MethodResponse resp = client.call(secureDispatcher, "/SecureRPC", "ali-baba", "open-sesame");
-        if (resp.isOK() )
-        {
-            // base64-decode and decrypt response
-            ulxr::Base64 respdata = resp.getResult();
-            ULXR_TRACE(respdata.getString());
-
-            std::string xml_resp = ulxr::decodeBase64(respdata.getString());
-            ULXR_TRACE(xml_resp);
-
-            // parse response to access result
-            ulxr::MethodResponseParser parser;
-            bool done = false;
-            if (!parser.parse(xml_resp.data(), xml_resp.length(), done))
-            {
-                throw ulxr::XmlException(parser.mapToFaultCode(parser.getErrorCode()),
-                                         "Problem while parsing decrypted xml request",
-                                         parser.getCurrentLineNumber(),
-                                         parser.getErrorString(parser.getErrorCode()));
-            }
-
-            resp = parser.getMethodResponse();
-
-            std::cout << "secure call result: \n";
-            std::cout << resp.getXml(0);
-        }
-        else
-        {
-            std::cout << "Error while transmitting secured method call\n";
-            std::cout << "envelope call result: \n";
-            std::cout << resp.getXml(0);
-        }
+      ULXR_COUT << ULXR_PCHAR("secure call result: \n");
+      ULXR_COUT << resp.getXml(0);
     }
-    catch(ulxr::Exception &ex)
+    else
     {
-        std::cout << "Error occured: " << ex.why() << std::endl;
+      ULXR_COUT << ULXR_PCHAR("Error while transmitting secured method call\n");
+      ULXR_COUT << ULXR_PCHAR("envelope call result: \n");
+      ULXR_COUT << resp.getXml(0);
     }
-    catch(...)
-    {
-        std::cout << "unknown Error occured.\n";
-    }
+  }
+  catch(ulxr::Exception &ex)
+  {
+     ULXR_COUT << ULXR_PCHAR("Error occured: ") << ULXR_GET_STRING(ex.why()) << std::endl;
+  }
+  catch(...)
+  {
+     ULXR_COUT << ULXR_PCHAR("unknown Error occured.\n");
+  }
 
-    return 0;
+  return 0;
 }

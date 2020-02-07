@@ -5,7 +5,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: ulxr_callparse.cpp 10942 2011-09-13 14:35:52Z korosteleva $
+    $Id: ulxr_callparse.cpp 1158 2009-08-30 14:34:24Z ewald-arnold $
 
  ***************************************************************************/
 
@@ -36,8 +36,8 @@
 #include <cstring>
 #include <memory>
 
-
-#include <ulxmlrpcpp/ulxmlrpcpp.h>
+#define ULXR_NEED_EXPORTS
+#include <ulxmlrpcpp/ulxmlrpcpp.h>  // always first header
 
 #include <ulxmlrpcpp/ulxr_callparse.h>
 #include <ulxmlrpcpp/ulxr_except.h>
@@ -46,118 +46,118 @@
 namespace ulxr {
 
 
-    void MethodCallParser::startElement(const XML_Char* name,
-                                        const XML_Char** atts)
-    {
-        if (!testStartElement(name, atts))
-            ValueParser::testStartElement(name, atts);
-    }
+ULXR_API_IMPL(void) MethodCallParser::startElement(const XML_Char* name,
+                                                const XML_Char** atts)
+{
+  if (!testStartElement(name, atts))
+    ValueParser::testStartElement(name, atts);
+}
 
 
-    bool
-    MethodCallParser::testStartElement(const XML_Char* name,
-                                       const XML_Char** /*atts*/)
-    {
-        ULXR_TRACE("MethodCallParser::testStartElement(const XML_Char*, const char**)"
-                   << "\n  name: "
-                   << name
-                  );
+ULXR_API_IMPL(bool)
+  MethodCallParser::testStartElement(const XML_Char* name,
+                                     const XML_Char** /*atts*/)
+{
+  ULXR_TRACE(ULXR_PCHAR("MethodCallParser::testStartElement(const XML_Char*, const char**)")
+             << ULXR_PCHAR("\n  name: ")
+             << ULXR_GET_STRING(name)
+            );
 
-        switch(states.top()->getParserState() )
-        {
-        case eNone:
-            if (strcmp(name, "methodCall") == 0)
-            {
-                setComplete(false);
-                states.push(new ValueState(eMethodCall));
-            }
-            else
-                return false;
-            break;
+  switch(states.top()->getParserState() )
+  {
+    case eNone:
+      if (strcmp(name, "methodCall") == 0)
+      {
+        setComplete(false);
+        states.push(new ValueState(eMethodCall));
+      }
+      else
+        return false;
+    break;
 
-        case eMethodCall:
-            if (strcmp(name, "methodName") == 0)
-                states.push(new ValueState(eMethodName));
+    case eMethodCall:
+      if (strcmp(name, "methodName") == 0)
+        states.push(new ValueState(eMethodName));
 
-            else if (strcmp(name, "params") == 0)
-                states.push(new ValueState(eParams));
+      else if (strcmp(name, "params") == 0)
+        states.push(new ValueState(eParams));
 
-            else
-                return false;
-            break;
+      else
+        return false;
+    break;
 
-        case eParams:
-            if (strcmp(name, "param") == 0)
-                states.push(new ValueState(eParam));
-            else
-                return false;
-            break;
+    case eParams:
+      if (strcmp(name, "param") == 0)
+        states.push(new ValueState(eParam));
+      else
+        return false;
+    break;
 
-        case eParam:
-            if(strcmp(name, "value") == 0)
-                states.push(new ValueState(eValue));
-            else
-                return false;
-            break;
+    case eParam:
+      if(strcmp(name, "value") == 0)
+        states.push(new ValueState(eValue));
+      else
+        return false;
+    break;
 
-        default:
-            return false;
-        }
+    default:
+        return false;
+  }
 
-        return true;
-    }
-
-
-    void MethodCallParser::endElement(const XML_Char *name)
-    {
-        if (!testEndElement(name))
-            ValueParser::testEndElement(name);
-    }
+  return true;
+}
 
 
-    bool MethodCallParser::testEndElement(const XML_Char *name)
-    {
-        ULXR_TRACE("MethodCallParser::testEndElement(const XML_Char*)");
+ULXR_API_IMPL(void) MethodCallParser::endElement(const XML_Char *name)
+{
+  if (!testEndElement(name))
+    ValueParser::testEndElement(name);
+}
 
-        if (states.size() <= 1)
-            throw RuntimeException(ApplicationError, "abnormal program behaviour: MethodCallParser::testEndElement() had no states left");
 
-        std::auto_ptr<ValueState> curr(getTopValueState());
-        states.pop();
+ULXR_API_IMPL(bool) MethodCallParser::testEndElement(const XML_Char *name)
+{
+  ULXR_TRACE(ULXR_PCHAR("MethodCallParser::testEndElement(const XML_Char*)"));
 
-//   ULXR_TRACE("\n  current data: <"
-//              << curr->getCharData() << ">");
+  if (states.size() <= 1)
+    throw RuntimeException(ApplicationError, ulxr_i18n(ULXR_PCHAR("abnormal program behaviour: MethodCallParser::testEndElement() had no states left")));
 
-        switch(curr->getParserState() )
-        {
-        case eMethodName:
-            assertEndElement(name, "methodName");
-            methodcall.setMethodName(curr->getCharData());
-            break;
+  std::auto_ptr<ValueState> curr(getTopValueState());
+  states.pop();
 
-        case eMethodCall:
-            assertEndElement(name, "methodCall");
-            setComplete(true);
-            break;
+//   ULXR_TRACE(ULXR_PCHAR("\n  current data: <")
+//              << curr->getCharData() << ULXR_PCHAR(">"));
 
-        case eParams:
-            assertEndElement(name, "params");
-            break;
+  switch(curr->getParserState() )
+  {
+    case eMethodName:
+      assertEndElement(name, "methodName");
+      methodcall.setMethodName(curr->getCharData());
+    break;
 
-        case eParam:
-            assertEndElement(name, "param");
-            if (curr->getValue() != 0)
-                methodcall.addParam(*curr->getValue());
-            delete curr->getValue();
-            break;
+    case eMethodCall:
+      assertEndElement(name, "methodCall");
+      setComplete(true);
+    break;
 
-        default:
-            states.push(curr.release());  // put back, someone else will process
-            return false;
-        }
+    case eParams:
+      assertEndElement(name, "params");
+    break;
 
-        return true;
-    }
+    case eParam:
+      assertEndElement(name, "param");
+      if (curr->getValue() != 0)
+        methodcall.addParam(*curr->getValue());
+      delete curr->getValue();
+    break;
+
+    default:
+      states.push(curr.release());  // put back, someone else will process
+      return false;
+  }
+
+  return true;
+}
 
 
 }  // namespace ulxr

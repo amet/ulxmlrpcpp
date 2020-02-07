@@ -5,7 +5,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: ulxr_tcpip_connection.h 11073 2011-10-25 12:44:58Z korosteleva $
+    $Id: ulxr_tcpip_connection.h 1087 2007-11-05 20:10:39Z ewald-arnold $
 
  ***************************************************************************/
 
@@ -30,215 +30,277 @@
 #ifndef ULXR_TCPIP_CONNECTION_H
 #define ULXR_TCPIP_CONNECTION_H
 
+#ifndef ULXR_OMIT_TCP_STUFF
+
+#include <ulxmlrpcpp/ulxmlrpcpp.h>  // always first header
+
+#if defined(__WIN32__) || defined(_MSC_VER)
+#include <winsock2.h>
+//#include <windows.h>
+typedef int socklen_t;
+#endif
+
+#ifdef __unix__
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
-#include <list>
+#endif
 
-#include <ulxmlrpcpp/ulxmlrpcpp.h>
 #include <ulxmlrpcpp/ulxr_connection.h>
+
 
 namespace ulxr {
 
-    struct IP
-    {
-        std::string ipv4;
-        std::string ipv6;
 
-        IP() {}
-        IP(const std::string& anIpv4, const std::string& anIpv6) : ipv4(anIpv4), ipv6(anIpv6) {}
-        inline bool operator==(const IP& rhs) { return (rhs.ipv4 == ipv4 && rhs.ipv6 == ipv6); }
-    };
+/** Run a generic tcp/ip connection between a client and a server.
+  * @ingroup grp_ulxr_connection
+  */
+class ULXR_API_DECL0 TcpIpConnection : public Connection
+{
+ public:
 
-    /** Run a generic tcp/ip connection between a client and a server.
-      * @ingroup grp_ulxr_connection
-      */
-    class  TcpIpConnection : public Connection
-    {
-    public:
-        static const size_t DefConnectionTimeout = 2; //sec
+ /** Constructs a generic connection, primarily for a client.
+   * The connection is not yet open after construction.
+   * @param  server  true: bind socket to adress for server mode
+   * @param  domain  domain name of the server
+   * @param  port    port on the the server. (If port==0 the system might choose
+   *                 a free port. Retrievable with \c getPort())
+   */
+   TcpIpConnection(bool server, const CppString &domain, unsigned port = 80);
 
-        /** Constructs a generic connection for a client.
-          * The connection is not yet open after construction.
-          * @param  host  hostname or IP address or the remote peer
-          * If aRemoteHost represents a symbolic hostname which resolves both to IPv4 and IPv6,
-            first IPv6 conneciton is tried to be established, and if it fails, IPv4 is subsequently tried
-          * @param  port    port
-          * param aTcpConnectionTimeout TCP connection timeout in seconds
-          */
-        TcpIpConnection(const std::string& aRemoteHost, unsigned port, size_t aTcpConnectionTimeout = DefConnectionTimeout);
+ /** Sets a proxy for further connections.
+   * This setting only applies for client connections.
+   * @param  adr     adress for proxy
+   * @param  port    port on which to connect to the proxy
+   */
+   void setProxy(long adr, unsigned port);
 
-        /** Constructs a generic connection for a server
-        * The connection is not yet open after construction.
-        * @param  IP IP address(es) to listen on.
-        * @param  port    port on the the server.
-        */
-        TcpIpConnection(const IP &aListenIp, unsigned port);
+ /** Sets the proxy server data.
+   * @param  domain  name for proxy
+   * @param  port    port on which to connect to the proxy
+   */
+   void setProxy(const CppString &domain, unsigned port);
 
-        /** Destroys the connection.
-          */
-        virtual ~TcpIpConnection();
+ /** Constructs a generic connection, primarily for a server.
+   * The connection is not yet open after construction.
+   * @param  server  true: bind socket to adress for server mode
+   * @param  adr     accepted client adress
+   * @param  port    port on which the connect is accepted
+   */
+   TcpIpConnection(bool server, long adr = INADDR_ANY,  unsigned port = 0);
 
-        /** Opens the connection in client mode.
-         */
-        virtual void open();
+ /** Destroys the connection.
+   */
+   virtual ~TcpIpConnection();
 
-        /** Opens the connection in server mode, thus waiting for
-          * connections from clients.
-          * @param timeout the timeout value [sec] for incoming data (0 - no timeout)
-          * @returns <code>true</code> when connection has been accepted
-          */
-        virtual bool accept(int timeout = 0);
+ /** Detaches the connection by creating a duplicate of
+   * the connection and closing the original connection afterwards.
+   * @return the current connection
+   */
+   virtual Connection *detach();
 
-        virtual void close();
+ /** Opens the connection in client mode.
+   */
+   virtual void open();
 
-        virtual void stopServing();
+ /** Opens the connection in server mode, thus waiting for
+   * connections from clients.
+   * @param timeout the timeout value [sec] for incoming data (0 - no timeout)
+   * @returns <code>true</code> when connection has been accepted
+   */
+   virtual bool accept(int timeout = 0);
 
-        /**
-          * Returns port.
-          */
-        unsigned getPort();
+ /** Closes the connection.
+   */
+   virtual void close();
+
+ /** Shuts down the socket.
+   * @param mode  shutdown mode
+   *              @li Unix:  SHUT_RD, SHUT_WR or SHUT_RDWR
+   *              @li Win32: SD_RECEIVE, SD_SEND or SD_BOTH
+   */
+   virtual void shutdown(int mode);
+
+ /**
+   * Returns the configured port.
+   */
+   unsigned getPort();
+
+ /** Gets the host name.
+   * @return  the host name.
+   */
+   CppString getHostName() const;
+
+ /** Gets the server doamin.
+   * @return  the server domain.
+   */
+   CppString getServerDomain() const;
+
+ /** Gets the name of the remote machine.
+   * attention Does not seem to work on all plattforms. Search source file for
+   * \c ULXR_ENABLE_GET_PEERNAME on how to enable this features.
+   * @return  the remote name.
+   */
+   CppString getPeerName() const;
+
+ /** Converts ascii text to in_addr struct.
+   * @param address  literal string of address to convert
+   * @param saddr    return struct with data
+   */
+   void asciiToInAddr(const char *address,
+                      struct in_addr &saddr);
+
+ /** Sets abort on close flag for a socket. Timeout value comes from \c getTimeout(),
+   * @param bOn    sets SO_LINGER state of the socket on/off.
+   * @return status of setsockopt
+   * See -s 3SOCKET setsockopt and sys/socket.h for details.
+   */
+   int abortOnClose(int bOn);
+
+ /** Sets the socket buffer mechanism.
+   * By disabling the buffer mechanism all data is sent immediately.
+   * This may result in higher performance especially with persistent
+   * connections but will also increase network traffic with more but
+   * smaller packets. Use with care.
+   * @param bOn sets the TCP_NODELAY option on the socket
+   */
+   void setTcpNoDelay(bool bOn);
+
+  /** Gets a readable name for this connection type.
+   * @return name of connection type
+   */
+   virtual CppString getInterfaceName();
+
+ /** Portable function to return the current socket error number.
+   * @return error number (errno under Unices)
+   */
+   virtual int getLastError();
+
+ /** Checks if the connection is run as server.
+   * @return true: server mode
+   */
+    bool isServerMode() const;
+
+ /** Returns the server connection handle.
+   * @return file handle
+   */
+    virtual int getServerHandle();
+
+ protected:
+
+  /** Creates a \c hostent struct from a host name.
+    * @return pointer to \c hostent structure
+    */
+    struct hostent *getHostAdress(const CppString &hostname);
+
+  /** Creates a shallow copy of this object.
+    * @return pointer to shallow copy
+    */
+    virtual TcpIpConnection *makeClone();
+
+ /** Decrements the reference count to the server data.
+   * If the count reaches 0 the server is deleted.
+   * @param shutdown true: shutdown the socket
+   */
+   virtual void decrementServerRef(bool shutdown = false);
+
+   class ServerSocketData;
+
+ /** Sets the pointer to the server-data.
+   * The reference count to the previous server is decremented.
+   * @param serv_data   pointer to server
+   */
+   void setServerData (ServerSocketData *serv_data);
+
+ /** Gets the pointer to the server-data.
+   * @return   pointer to server
+   */
+   ServerSocketData *getServerData () const;
+
+ private:
+
+ /** Initializes internal variables.
+   * @param   port   the port used for the connection
+   */
+   void init (unsigned port);
+
+ /** Sets the socket buffer mechanism.
+   * @return status of setsockopt
+   */
+   int doTcpNoDelay();
+
+ protected:
+
+  TcpIpConnection(const TcpIpConnection&);
+
+ private:
+
+   // forbid them all due to internal pointers
+  TcpIpConnection& operator=(const TcpIpConnection&); // empty!
+
+ private:
+
+   struct PImpl;
+   PImpl *pimpl;
+   int    noDelayOpt;
+};
 
 
-        /** Gets the name of the remote machine.
-          * attention Does not seem to work on all plattforms.
-          * @return  the remote name.
-          */
-        std::string getPeerName() const;
+/** Helper class to handle the server socket.
+  */
+class ULXR_API_DECL0 TcpIpConnection::ServerSocketData
+{
+  public:
 
-        /** Sets abort on close flag for a socket. Timeout value comes from \c getTimeout(),
-          * @param bOn    sets SO_LINGER state of the socket on/off.
-          * @return status of setsockopt
-          * See -s 3SOCKET setsockopt and sys/socket.h for details.
-          */
-        int abortOnClose(int bOn);
+  /** Construct the server socket.
+    * @param  s_no  the socket handle
+    */
+    ServerSocketData(int s_no);
 
-        /** Sets the socket buffer mechanism.
-          * By disabling the buffer mechanism all data is sent immediately.
-          * This may result in higher performance but will also increase network traffic with more but
-          * smaller packets. Use with care.
-          * @param bOn sets the TCP_NODELAY option on the socket
-          */
-        void setTcpNoDelay(bool bOn);
+  /** Destroy the server socket.
+    */
+    virtual ~ServerSocketData();
 
-        /** Portable function to return the current socket error number.
-          * @return error number (errno under Unices)
-          */
-        virtual int getLastError();
+  /** Gets the socket handle.
+    * @return  the socket handle
+    */
+    int getSocket() const;
 
-        /** Checks if the connection is run as server.
-          */
-        bool isServerMode() const;
+  /** Closes the socket - no shutdown.
+    */
+    void close();
 
-        virtual int getServerIpv4Handle();
-        virtual int getServerIpv6Handle();
+  /** Shuts down the socket.
+   * @param mode  shutdown mode
+   *              @li Unix:  SHUT_RD, SHUT_WR or SHUT_RDWR
+   *              @li Win32: SD_RECEIVE, SD_SEND or SD_BOTH
+    */
+    virtual void shutdown(int mode);
 
-    protected:
+  /** Queries if the socket has been closed via \c close() or \c shutdown().
+    */
+    bool isOpen();
 
-        /** Creates a \c hostent struct from a host name.
-          * @return pointer to \c hostent structure
-          */
-        struct hostent *getHostAdress(const std::string &hostname);
+  /** Increment the usage count by 1.
+    */
+    void incRef();
 
-        class ServerSocketData;
+  /** Decrement the usage count by 1.
+    * @return the current usage count after decrementing.
+    */
+    int decRef();
 
+  private:
 
-        /** Gets the pointer to the server-data.
-          * @return   pointer to server
-          */
-        ServerSocketData *getServerData () const;
-
-        bool isValidIpv4(const std::string& anAddr);
-        bool isValidIpv6(const std::string& anAddr);
-        std::string getIpv4ByName(const std::string& aHostName);
-        std::string getIpv6ByName(const std::string& aHostName);
-        IP getIpByName(const std::string& aHostName);
-        bool isValidPort(unsigned int aPort);
-        /**
-         * @pre all sockets are in listening state
-         * @param aListenSockets [in, out] ths input is a list of listening sockets to wait for connection on,
-         *        the output contains only those sockets for which the subsequent call to accept() is guaranteed to complete without blocking
-         * @param aTimeout time to wait, 0 means no timeout (wait until connected)
-         * @throw ConnectionException
-         */
-        void waitForConnection(std::list<int>& aListenSockets, int aTimeout = 0);
-
-        // set socket behavior to blocking/non-blocking
-        void setNonblock(bool aSet, bool ignoreErrors = false);
-        void setNonblockIgnoreErrors(bool aSet); // shortcut for setNonblock(aSet, true);
-
-    private:
-
-        /** Initializes internal variables.
-          * @param   port   the port used for the connection
-          */
-        void init (unsigned port);
-
-        /** Sets the socket buffer mechanism.
-          * @return status of setsockopt
-          */
-        int doTcpNoDelay();
-
-        //@nothrow
-        //@return if non-blocking connection succeeds the function return true and anErrorMsg stays intact
-        //                                  otherwise the function return false and anErrorMsg is appended with the error message
-        bool connectNonBlocking(const struct sockaddr *name, socklen_t namelen, std::string& anErrorMsg, bool anIsIpv6);
-
-    private:
-
-        // forbid them all due to internal pointers
-        TcpIpConnection(const TcpIpConnection&);
-        TcpIpConnection& operator=(const TcpIpConnection&); // empty!
-
-    private:
-
-        struct PImpl;
-        PImpl *pimpl;
-        int    noDelayOpt;
-        bool isIpv4;
-        bool isIpv6;
-        const size_t theTcpConnectionTimeoutSec;
-    };
-
-
-    /** Helper class to handle the server socket.
-      */
-    class  TcpIpConnection::ServerSocketData
-    {
-    public:
-
-        /** Construct the server socket.
-          * @param  s_no  the socket handle
-          */
-        ServerSocketData(int ipv4_sock_no, int ipv6_sock_no);
-
-        /** Destroy the server socket.
-          */
-        virtual ~ServerSocketData();
-
-        /** Gets the socket handle.
-          * @return  the socket handle
-          */
-        int getIpv4Socket() const;
-        int getIpv6Socket() const;
-
-        /** Closes the socket.
-          */
-        void close();
-
-        /** Queries if the socket has been closed.
-          */
-        bool isIpv4Open();
-        bool isIpv6Open();
-
-    private:
-        int    ipv4_socket_no;
-        int    ipv6_socket_no;
-    };
+    int    count;
+    int    socket_no;
+};
 
 
 }  // namespace ulxr
 
+
+#endif // ULXR_OMIT_TCP_STUFF
 
 #endif // ULXR_TCPIP_CONNECTION_H
