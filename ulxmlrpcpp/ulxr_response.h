@@ -5,7 +5,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: ulxr_response.h 940 2006-12-30 18:22:05Z ewald-arnold $
+    $Id: ulxr_response.h 10942 2011-09-13 14:35:52Z korosteleva $
 
  ***************************************************************************/
 
@@ -31,7 +31,7 @@
 #define ULXR_RESPONSE_H
 
 
-#include <ulxmlrpcpp/ulxmlrpcpp.h>  // always first header
+#include <ulxmlrpcpp/ulxmlrpcpp.h>
 #include <ulxmlrpcpp/ulxr_value.h>
 
 
@@ -47,7 +47,7 @@ class Void;
   * invoking the call.
   * @ingroup grp_ulxr_rpc
   */
-class ULXR_API_DECL0 MethodResponse
+class  MethodResponse
 {
  public:
 
@@ -64,7 +64,7 @@ class ULXR_API_DECL0 MethodResponse
    * @param  fval   error code
    * @param  fstr   human readable desciption of the error
    */
-   MethodResponse(int fval, const CppString &fstr);
+   MethodResponse(int fval, const std::string &fstr);
 
  /** Constructs a return value from the remote method.
    * the value can be of any type. To return more than one
@@ -93,15 +93,7 @@ class ULXR_API_DECL0 MethodResponse
    * @param deep  if nested types exist, include them
    * @return  The signature
    */
-   virtual CppString getSignature(bool deep = false) const;
-
- /** Returns the call as binary xml string.
-   * The method call is converted to a wbxml sequence. It is prepended with
-   * the necessary xml procession instruction with version and encoding
-   * set to UTF-8.
-   * @return  The wbxml content
-   */
-   virtual std::string getWbXml() const;
+   virtual std::string getSignature(bool deep = false) const;
 
  /** Returns the call as xml string.
    * The method cal is converted to an xml text. It is prepended with
@@ -111,14 +103,14 @@ class ULXR_API_DECL0 MethodResponse
    * @param  indent   current indentation level
    * @return  The xml conentent
    */
-   virtual CppString getXml(int indent = 0) const;
+   virtual std::string getXml(int indent = 0) const;
 
  /** Constructs a "fault reponse" to indicate RPC problems.
    * The number and string are system dependent.
    * @param  fval   error code
    * @param  fstr   human readable desciption of the error
    */
-   void setFault(int fval, const CppString &fstr);
+   void setFault(int fval, const std::string &fstr);
 
  /** Sets the return value from the remote method.
    * The value can be of any type. To return more than one

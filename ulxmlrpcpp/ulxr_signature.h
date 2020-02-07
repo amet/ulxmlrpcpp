@@ -5,7 +5,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: ulxr_signature.h 940 2006-12-30 18:22:05Z ewald-arnold $
+    $Id: ulxr_signature.h 10942 2011-09-13 14:35:52Z korosteleva $
 
  ***************************************************************************/
 
@@ -30,7 +30,7 @@
 #ifndef ULXR_SIGNATURE_H
 #define ULXR_SIGNATURE_H
 
-#include <ulxmlrpcpp/ulxmlrpcpp.h>  // always first header
+#include <ulxmlrpcpp/ulxmlrpcpp.h>
 
 
 namespace ulxr {
@@ -55,7 +55,7 @@ class Void;
   * </pre>
   * @ingroup grp_ulxr_rpc
   */
-class ULXR_API_DECL0 Signature
+class  Signature
 {
   public:
 
@@ -66,7 +66,7 @@ class ULXR_API_DECL0 Signature
   /** Constructs a signature from a single parameter
     * @param  s  rpc name of the parameter (int, string, ...)
     */
-    Signature(const CppString &s);
+    Signature(const std::string &s);
 
   /** Constructs a signature from a single parameter
     * @param  v  rpc value
@@ -82,7 +82,7 @@ class ULXR_API_DECL0 Signature
   /** Adds another parameter to the signature
     * @param  s  rpc name of the parameter
     */
-    Signature& addParam(const CppString &s);
+    Signature& addParam(const std::string &s);
 
   /** Adds another parameter to the signature
     * @param  v  rpc value
@@ -92,7 +92,7 @@ class ULXR_API_DECL0 Signature
   /** Adds another parameter to the signature
     * @param  s  rpc name of the parameter
     */
-    Signature& operator<<(const CppString &s);
+    Signature& operator<<(const std::string &s);
 
   /** Adds another parameter to the signature
     * @param  v  rpc value
@@ -102,11 +102,11 @@ class ULXR_API_DECL0 Signature
   /** Return the complete signature string
     * @return signature
     */
-    CppString getString() const;
+    std::string getString() const;
 
   private:
 
-    CppString     sig;
+    std::string     sig;
 };
 
 

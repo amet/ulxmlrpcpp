@@ -5,7 +5,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: ulxr_callparse_base.h 940 2006-12-30 18:22:05Z ewald-arnold $
+    $Id: ulxr_callparse_base.h 10942 2011-09-13 14:35:52Z korosteleva $
 
 ***************************************************************************/
 
@@ -30,7 +30,7 @@
 #ifndef ULXR_CALLPARSE_BASE_H
 #define ULXR_CALLPARSE_BASE_H
 
-#include <ulxmlrpcpp/ulxmlrpcpp.h>  // always first header
+#include <ulxmlrpcpp/ulxmlrpcpp.h>
 
 #include <ulxmlrpcpp/ulxr_call.h>
 #include <ulxmlrpcpp/ulxr_valueparse_base.h>
@@ -42,7 +42,7 @@ namespace ulxr {
 /** An xml parser for a MethodCall.
   * @ingroup grp_ulxr_parser
   */
-class ULXR_API_DECL0 MethodCallParserBase
+class  MethodCallParserBase
 {
  public:
 
@@ -64,7 +64,7 @@ class ULXR_API_DECL0 MethodCallParserBase
  /** Gets the name of the method.
    * @return the method name.
    */
-   CppString getMethodName() const;
+   std::string getMethodName() const;
 
  /** Gets the complete MethodCall with all its data.
    * @return the method.

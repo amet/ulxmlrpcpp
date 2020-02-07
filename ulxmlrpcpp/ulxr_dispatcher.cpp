@@ -5,7 +5,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: ulxr_dispatcher.cpp 1028 2007-07-25 15:11:31Z ewald-arnold $
+    $Id: ulxr_dispatcher.cpp 10939 2011-09-12 13:22:25Z korosteleva $
 
  ***************************************************************************/
 
@@ -27,38 +27,31 @@
  *
  ***************************************************************************/
 
-// #define ULXR_SHOW_TRACE
-// #define ULXR_DEBUG_OUTPUT
-// #define ULXR_SHOW_READ
-// #define ULXR_SHOW_WRITE
-// #define ULXR_SHOW_XML
-
-#define ULXR_NEED_EXPORTS
-#include <ulxmlrpcpp/ulxmlrpcpp.h>  // always first header
-
-#if defined(__BORLANDC__) || defined (_MSC_VER)
-#include <utility>
-#endif
+ //#define ULXR_SHOW_TRACE
+ //#define ULXR_DEBUG_OUTPUT
+ //#define ULXR_SHOW_READ
+ //#define ULXR_SHOW_WRITE
+ //#define ULXR_SHOW_XML
 
 #include <algorithm>
 #include <memory>
 
+#include <ulxmlrpcpp/ulxmlrpcpp.h>
 #include <ulxmlrpcpp/ulxr_dispatcher.h>
 #include <ulxmlrpcpp/ulxr_protocol.h>
 #include <ulxmlrpcpp/ulxr_callparse.h>
-#include <ulxmlrpcpp/ulxr_callparse_wb.h>
 #include <ulxmlrpcpp/ulxr_except.h>
 #include <ulxmlrpcpp/ulxr_signature.h>
 
 namespace ulxr {
 
 
-ULXR_API_IMPL0
+
   Dispatcher::MethodCallDescriptor::MethodCallDescriptor(const MethodCall &call)
 {
   method_name = call.getMethodName();
-  documentation = ULXR_PCHAR("");
-  return_signature = ULXR_PCHAR("");
+  documentation = "";
+  return_signature = "";
 
   signature = call.getSignature(false);
 
@@ -68,12 +61,12 @@ ULXR_API_IMPL0
 }
 
 
-ULXR_API_IMPL0 Dispatcher::MethodCallDescriptor::MethodCallDescriptor(
+ Dispatcher::MethodCallDescriptor::MethodCallDescriptor(
     CallType type,
-    const CppString &ret_sig,
-    const CppString &name,
-    const CppString &sig,
-    const CppString &help)
+    const std::string &ret_sig,
+    const std::string &name,
+    const std::string &sig,
+    const std::string &help)
 {
   method_name = name;
   documentation = help;
@@ -85,55 +78,55 @@ ULXR_API_IMPL0 Dispatcher::MethodCallDescriptor::MethodCallDescriptor(
 }
 
 
-ULXR_API_IMPL(unsigned long) Dispatcher::MethodCallDescriptor::getInvoked() const
+unsigned long Dispatcher::MethodCallDescriptor::getInvoked() const
 {
   return invoked;
 }
 
 
-ULXR_API_IMPL(void) Dispatcher::MethodCallDescriptor::incInvoked() const
+void Dispatcher::MethodCallDescriptor::incInvoked() const
 {
   ++invoked;
 }
 
 
-ULXR_API_IMPL(bool) Dispatcher::MethodCallDescriptor::isEnabled() const
+bool Dispatcher::MethodCallDescriptor::isEnabled() const
 {
   return enabled;
 }
 
 
-ULXR_API_IMPL(void) Dispatcher::MethodCallDescriptor::setEnabled(bool ena) const
+void Dispatcher::MethodCallDescriptor::setEnabled(bool ena) const
 {
   enabled = ena;
 }
 
 
-ULXR_API_IMPL(CppString)
+std::string
   Dispatcher::MethodCallDescriptor::getSignature(bool with_name,
                                                  bool with_return) const
 {
-  ULXR_TRACE(ULXR_PCHAR("getSignature"));
-  CppString s;
-  CppString rs = return_signature;
+  ULXR_TRACE("getSignature");
+  std::string s;
+  std::string rs = return_signature;
   if (rs.length() == 0)
-    rs = ULXR_PCHAR("void");  // emergency brake
+    rs = "void";  // emergency brake
 
-  CppString sig = signature;
+  std::string sig = signature;
   if (sig.length() == 0)
-    sig = ULXR_PCHAR("void");  // emergency brake
+    sig = "void";  // emergency brake
 
   if (with_return && with_name)
-    s = rs + ULXR_PCHAR(" ") + method_name + ULXR_PCHAR("(") + sig + ULXR_PCHAR(")");
+    s = rs + " " + method_name + "(" + sig + ")";
 
   else if (!with_return && with_name)
-    s = method_name + ULXR_PCHAR("(") + sig + ULXR_PCHAR(")");
+    s = method_name + "(" + sig + ")";
 
   else if (with_return && !with_name)
   {
     s = rs;
     if (sig.length() != 0)
-      s += ULXR_PCHAR(",") + sig;
+      s += "," + sig;
   }
 
   else if (!with_return && !with_name)
@@ -143,31 +136,31 @@ ULXR_API_IMPL(CppString)
 }
 
 
-ULXR_API_IMPL(CppString) Dispatcher::MethodCallDescriptor::getMethodName() const
+std::string Dispatcher::MethodCallDescriptor::getMethodName() const
 {
   return method_name;
 }
 
 
-ULXR_API_IMPL(CppString) Dispatcher::MethodCallDescriptor::getParameterSignature() const
+std::string Dispatcher::MethodCallDescriptor::getParameterSignature() const
 {
   return signature;
 }
 
 
-ULXR_API_IMPL(CppString) Dispatcher::MethodCallDescriptor::getReturnValueSignature() const
+std::string Dispatcher::MethodCallDescriptor::getReturnValueSignature() const
 {
   return return_signature;
 }
 
 
-ULXR_API_IMPL(CppString) Dispatcher::MethodCallDescriptor::getDocumentation() const
+std::string Dispatcher::MethodCallDescriptor::getDocumentation() const
 {
   return documentation;
 }
 
 
-ULXR_API_IMPL(Dispatcher::CallType) Dispatcher::MethodCallDescriptor::getCallType() const
+Dispatcher::CallType Dispatcher::MethodCallDescriptor::getCallType() const
 {
   return calltype;
 }
@@ -178,9 +171,8 @@ ULXR_API_IMPL(Dispatcher::CallType) Dispatcher::MethodCallDescriptor::getCallTyp
 
 
 
-ULXR_API_IMPL0 Dispatcher::Dispatcher (Protocol* prot, bool wbxml)
+ Dispatcher::Dispatcher (Protocol* prot)
 {
-  wbxml_mode = wbxml;
   protocol = prot;
   setupSystemMethods();
 }
@@ -190,24 +182,24 @@ void free_dynamic_method (const Dispatcher::MethodCallMap::value_type &method)
 {
    if (method.first.getCallType() == Dispatcher::CallDynamic)
    {
-     ULXR_TRACE(ULXR_PCHAR("Now deleting dynamic function: ") + method.first.getSignature(true, true));
+     ULXR_TRACE("Now deleting dynamic function: " + method.first.getSignature(true, true));
      delete method.second.dynamic_function;
      const_cast<Dispatcher::MethodCallMap::value_type&>(method).second.dynamic_function = 0;
    }
 }
 
 
-ULXR_API_IMPL0 Dispatcher::~Dispatcher ()
+ Dispatcher::~Dispatcher ()
 {
-   ULXR_TRACE(ULXR_PCHAR("~Dispatcher ()"));
+   ULXR_TRACE("~Dispatcher ()");
    std::for_each(methodcalls.begin(), methodcalls.end(), free_dynamic_method);
    methodcalls.clear();
 }
 
 
-ULXR_API_IMPL(void) Dispatcher::removeMethod(const CppString &name)
+void Dispatcher::removeMethod(const std::string &name)
 {
-   ULXR_TRACE(ULXR_PCHAR("removeMethod ") << name);
+   ULXR_TRACE("removeMethod " << name);
    MethodCallMap::iterator it;
    for(it = methodcalls.begin(); it != methodcalls.end(); ++it)
    {
@@ -220,13 +212,13 @@ ULXR_API_IMPL(void) Dispatcher::removeMethod(const CppString &name)
 }
 
 
-ULXR_API_IMPL(void) Dispatcher::addMethod (StaticMethodCall_t func,
-                                        const CppString &ret_signature,
-                                        const CppString &name,
-                                        const CppString &signature,
-                                        const CppString &help)
+void Dispatcher::addMethod (StaticMethodCall_t func,
+                                        const std::string &ret_signature,
+                                        const std::string &name,
+                                        const std::string &signature,
+                                        const std::string &help)
 {
-  ULXR_TRACE(ULXR_PCHAR("addMethod(static)"));
+  ULXR_TRACE("addMethod(static)");
   MethodCallDescriptor desc (CallStatic, ret_signature, name, signature, help);
   MethodCall_t mct;
   mct.static_function = func;
@@ -234,13 +226,13 @@ ULXR_API_IMPL(void) Dispatcher::addMethod (StaticMethodCall_t func,
 }
 
 
-ULXR_API_IMPL(void) Dispatcher::addMethod (DynamicMethodCall_t func,
-                                        const CppString &ret_signature,
-                                        const CppString &name,
-                                        const CppString &signature,
-                                        const CppString &help)
+void Dispatcher::addMethod (DynamicMethodCall_t func,
+                                        const std::string &ret_signature,
+                                        const std::string &name,
+                                        const std::string &signature,
+                                        const std::string &help)
 {
-  ULXR_TRACE(ULXR_PCHAR("addMethod(dynamic)"));
+  ULXR_TRACE("addMethod(dynamic)");
   MethodCallDescriptor desc (CallDynamic, ret_signature, name, signature, help);
   MethodCall_t mct;
   mct.dynamic_function = func;  // takes ownership
@@ -248,13 +240,13 @@ ULXR_API_IMPL(void) Dispatcher::addMethod (DynamicMethodCall_t func,
 }
 
 
-ULXR_API_IMPL(void) Dispatcher::addMethod (SystemMethodCall_t func,
-                                        const CppString &ret_signature,
-                                        const CppString &name,
-                                        const CppString &signature,
-                                        const CppString &help)
+void Dispatcher::addMethod (SystemMethodCall_t func,
+                                        const std::string &ret_signature,
+                                        const std::string &name,
+                                        const std::string &signature,
+                                        const std::string &help)
 {
-  ULXR_TRACE(ULXR_PCHAR("addMethod(system)"));
+  ULXR_TRACE("addMethod(system)");
   MethodCallDescriptor desc (CallSystem, ret_signature, name, signature, help);
   MethodCall_t mct;
   mct.system_function = func;
@@ -262,52 +254,51 @@ ULXR_API_IMPL(void) Dispatcher::addMethod (SystemMethodCall_t func,
 }
 
 
-ULXR_API_IMPL(void) Dispatcher::addMethod (StaticMethodCall_t func,
+void Dispatcher::addMethod (StaticMethodCall_t func,
                                         const Signature &ret_signature,
-                                        const CppString &name,
+                                        const std::string &name,
                                         const Signature &signature,
-                                        const CppString &help)
+                                        const std::string &help)
 {
   addMethod(func, ret_signature.getString(), name, signature.getString(), help);
 }
 
 
-ULXR_API_IMPL(void) Dispatcher::addMethod (DynamicMethodCall_t func,
+void Dispatcher::addMethod (DynamicMethodCall_t func,
                                         const Signature &ret_signature,
-                                        const CppString &name,
+                                        const std::string &name,
                                         const Signature &signature,
-                                        const CppString &help)
+                                        const std::string &help)
 {
   addMethod(func, ret_signature.getString(), name, signature.getString(), help);
 }
 
 
-ULXR_API_IMPL(void) Dispatcher::addMethod (SystemMethodCall_t func,
+void Dispatcher::addMethod (SystemMethodCall_t func,
                                         const Signature &ret_signature,
-                                        const CppString &name,
+                                        const std::string &name,
                                         const Signature &signature,
-                                        const CppString &help)
+                                        const std::string &help)
 {
   addMethod(func, ret_signature.getString(), name, signature.getString(), help);
 }
 
 
-ULXR_API_IMPL(void)
+void
   Dispatcher::addMethodDescriptor (const MethodCallDescriptor &desc,
                                    MethodCall_t mct)
 {
   ULXR_TRACE("addMethodDescriptor " << desc.getSignature(true, false));
   if (methodcalls.find(desc) != methodcalls.end() )
-    throw RuntimeException(ApplicationError,
-                           ulxr_i18n(ULXR_PCHAR("Method exists already: ") + desc.getSignature(true, false)));
+    throw RuntimeException(ApplicationError, "Method exists already: " + desc.getSignature(true, false));
 
   methodcalls.insert(std::make_pair(desc, mct));
 }
 
 
-ULXR_API_IMPL(MethodCall) Dispatcher::waitForCall(int _timeout)
+MethodCall Dispatcher::waitForCall(int _timeout)
 {
-  ULXR_TRACE(ULXR_PCHAR("waitForCall"));
+  ULXR_TRACE("waitForCall");
   if (!protocol->isOpen())
   {
     if (!protocol->accept(_timeout))
@@ -316,84 +307,59 @@ ULXR_API_IMPL(MethodCall) Dispatcher::waitForCall(int _timeout)
   else
     protocol->resetConnection();
 
-#ifdef ULXR_ENFORCE_NON_PERSISTENT
-  protocol->setPersistent(false);
-#endif
-
   char buffer[ULXR_RECV_BUFFER_SIZE];
   char *buff_ptr;
 
 
   std::auto_ptr<XmlParserBase> parser;
   MethodCallParserBase *cpb = 0;
-  if (wbxml_mode)
-  {
-    ULXR_TRACE(ULXR_PCHAR("waitForCall in WBXML"));
-    MethodCallParserWb *cp = new MethodCallParserWb();
-    cpb = cp;
-#ifdef _MSC_VER
-  std::auto_ptr<XmlParserBase> temp(cp);
-  parser = temp;
-#else
-    parser.reset(cp);
-#endif
-  }
-  else
-  {
-    ULXR_TRACE(ULXR_PCHAR("waitForCall in XML"));
-    MethodCallParser *cp = new MethodCallParser();
-    cpb = cp;
-#ifdef _MSC_VER
-  std::auto_ptr<XmlParserBase> temp(cp);
-  parser = temp;
-#else
-    parser.reset(cp);
-#endif
-  }
+  ULXR_TRACE("waitForCall in XML");
+  MethodCallParser *cp = new MethodCallParser();
+  cpb = cp;
+  parser.reset(cp);
 
   bool done = false;
-  long readed;
-  while (!done && ((readed = protocol->readRaw(buffer, sizeof(buffer))) > 0) )
+  long myRead;
+  while (!done && ((myRead = protocol->readRaw(buffer, sizeof(buffer))) > 0) )
   {
     buff_ptr = buffer;
-    while (readed > 0)
+    while (myRead > 0)
     {
-      Protocol::State state = protocol->connectionMachine(buff_ptr, readed);
+      Protocol::State state = protocol->connectionMachine(buff_ptr, myRead);
       if (state == Protocol::ConnError)
-        throw ConnectionException(TransportError, ulxr_i18n(ULXR_PCHAR("network problem occured")), 500);
+        throw ConnectionException(TransportError, "network problem occured", 500);
 
       else if (state == Protocol::ConnSwitchToBody)
       {
         if (!protocol->hasBytesToRead())
         {
 #ifdef ULXR_SHOW_READ
-          Cpp8BitString super_data(buff_ptr, readed);
-          while ((readed = protocol->readRaw(buffer, sizeof(buffer))) > 0)
-            super_data.append(buffer, readed);
-          ULXR_DOUT_READ(ULXR_PCHAR("superdata 1 start:\n")
-                         << ULXR_GET_STRING(super_data)
-                         << ULXR_PCHAR("superdata 1 end:\n" ));
+          std::string super_data(buff_ptr, myRead);
+          while ((myRead = protocol->readRaw(buffer, sizeof(buffer))) > 0)
+            super_data.append(buffer, myRead);
+          ULXR_DOUT_READ("superdata 1 start:\n"
+                         << super_data
+                         << "superdata 1 end:\n");
 #endif
-          throw ConnectionException(NotConformingError,
-                                    ulxr_i18n(ULXR_PCHAR("Content-Length of message not available")), 411);
+          throw ConnectionException(NotConformingError,  "Content-Length of message not available", 411);
         }
       }
 
       else if (state == Protocol::ConnBody)
       {
-        ULXR_DOUT_XML(ULXR_GET_STRING(std::string(buff_ptr, readed)));
-        if (!parser->parse(buff_ptr, readed, done))
+        ULXR_DOUT_XML(std::string(buff_ptr, myRead));
+        if (!parser->parse(buff_ptr, myRead, done))
         {
-//          ULXR_DOUT("errline: " << parser->XML_GetCurrentLineNumber());
-//          ULXR_DWRITE(buff_ptr, readed);
-//          ULXR_DOUT("") ;
+          ULXR_DOUT("errline: " << parser->getCurrentLineNumber());
+          ULXR_DWRITE(buff_ptr, myRead);
+          ULXR_DOUT("") ;
 
           throw XmlException(parser->mapToFaultCode(parser->getErrorCode()),
-                             ulxr_i18n(ULXR_PCHAR("Problem while parsing xml request")),
+                             "Problem while parsing xml request",
                              parser->getCurrentLineNumber(),
-                             ULXR_GET_STRING(parser->getErrorString(parser->getErrorCode())));
+                             parser->getErrorString(parser->getErrorCode()));
         }
-        readed = 0;
+        myRead = 0;
       }
     }
 
@@ -402,28 +368,27 @@ ULXR_API_IMPL(MethodCall) Dispatcher::waitForCall(int _timeout)
       done = true;
   }
 
-  ULXR_TRACE(ULXR_PCHAR("waitForCall got " << cpb->getMethodCall().getXml()));
+  ULXR_TRACE("waitForCall got " << cpb->getMethodCall().getXml());
   return cpb->getMethodCall();
 }
 
 
-ULXR_API_IMPL(const Dispatcher::MethodCallDescriptor) * const Dispatcher::getMethod(unsigned index)
+const Dispatcher::MethodCallDescriptor* const Dispatcher::getMethod(unsigned index)
 {
-  ULXR_TRACE(ULXR_PCHAR("getMethod"));
+  ULXR_TRACE("getMethod");
   unsigned i = 0;
   MethodCallMap::iterator it;
   for (it = methodcalls.begin(); it != methodcalls.end(); ++it, ++i)
     if (i == index)
       return &(*it).first;
 
- throw RuntimeException(ApplicationError,
-                        ulxr_i18n(ULXR_PCHAR("Index too big for Dispatcher::getMethod()")));
+ throw RuntimeException(ApplicationError, "Index too big for Dispatcher::getMethod()");
 }
 
 
-ULXR_API_IMPL(unsigned) Dispatcher::numMethods() const
+unsigned Dispatcher::numMethods() const
 {
-  ULXR_TRACE(ULXR_PCHAR("numMethods"));
+  ULXR_TRACE("numMethods");
   unsigned i = 0;
   MethodCallMap::const_iterator it;
   for (it = methodcalls.begin(); it != methodcalls.end(); ++it)
@@ -432,16 +397,16 @@ ULXR_API_IMPL(unsigned) Dispatcher::numMethods() const
 }
 
 
-ULXR_API_IMPL(bool) Dispatcher::hasMethod(const MethodCall &call) const
+bool Dispatcher::hasMethod(const MethodCall &call) const
 {
   MethodCallDescriptor desc(call);
   return methodcalls.find(desc) != methodcalls.end();
 }
 
 
-ULXR_API_IMPL(MethodResponse) Dispatcher::dispatchCall(const MethodCall &call) const
+MethodResponse Dispatcher::dispatchCall(const MethodCall &call) const
 {
-  ULXR_TRACE(ULXR_PCHAR("dispatchCall"));
+  ULXR_TRACE("dispatchCall");
   try
   {
     return dispatchCallLoc(call);
@@ -454,19 +419,19 @@ ULXR_API_IMPL(MethodResponse) Dispatcher::dispatchCall(const MethodCall &call) c
 
   catch (std::exception &ex)
   {
-    return MethodResponse (ApplicationError, ULXR_GET_STRING(ex.what()));
+    return MethodResponse (ApplicationError, ex.what());
   }
 
   catch (...)
   {
-    return MethodResponse (SystemError, ulxr_i18n(ULXR_PCHAR("Unknown error occured")));
+    return MethodResponse (SystemError, "Unknown error occured");
   }
 }
 
 
-ULXR_API_IMPL(MethodResponse) Dispatcher::dispatchCallLoc(const MethodCall &call) const
+MethodResponse Dispatcher::dispatchCallLoc(const MethodCall &call) const
 {
-  ULXR_TRACE(ULXR_PCHAR("dispatchCallLoc: ") << call.getMethodName());
+  ULXR_TRACE("dispatchCallLoc: " << call.getMethodName());
 
   MethodCallDescriptor desc(call);
   MethodCallMap::const_iterator it;
@@ -475,9 +440,9 @@ ULXR_API_IMPL(MethodResponse) Dispatcher::dispatchCallLoc(const MethodCall &call
     MethodCall_t mc = (*it).second;
     if (!(*it).first.isEnabled())
     {
-      CppString s = ulxr_i18n(ULXR_PCHAR("method \""));
+      std::string s = "method \"";
       s += desc.getSignature(true, false);
-      s += ulxr_i18n(ULXR_PCHAR("\": currently unavailable."));
+      s += "\": currently unavailable.";
       return MethodResponse (MethodNotFoundError, s);
     }
 
@@ -485,94 +450,94 @@ ULXR_API_IMPL(MethodResponse) Dispatcher::dispatchCallLoc(const MethodCall &call
     {
       if ((*it).first.calltype == CallSystem)
       {
-        ULXR_TRACE(ULXR_PCHAR("Now calling system function: ") + (*it).first.getSignature(true, true));
+        ULXR_TRACE("Now calling system function: " + (*it).first.getSignature(true, true));
         (*it).first.incInvoked();
         return mc.system_function(call, this);
       }
 
       else if ((*it).first.calltype == CallStatic)
       {
-        ULXR_TRACE(ULXR_PCHAR("Now calling static function: ") + (*it).first.getSignature(true, true));
+        ULXR_TRACE("Now calling static function: " + (*it).first.getSignature(true, true));
         (*it).first.incInvoked();
         return mc.static_function(call);
       }
 
       else if ((*it).first.calltype == CallDynamic)
       {
-        ULXR_TRACE(ULXR_PCHAR("Now calling dynamic function: ") + (*it).first.getSignature(true, true));
+        ULXR_TRACE("Now calling dynamic function: " + (*it).first.getSignature(true, true));
         (*it).first.incInvoked();
         return mc.dynamic_function->call(call);
       }
 
       else
       {
-        CppString s = ulxr_i18n(ULXR_PCHAR("method \""));
+        std::string s = "method \"";
         s += desc.getSignature(true, false);
-        s += ulxr_i18n(ULXR_PCHAR("\": internal problem to find method."));
+        s += "\": internal problem to find method.";
         return MethodResponse (MethodNotFoundError, s);
       }
     }
   }
 
-  CppString s = ulxr_i18n(ULXR_PCHAR("method \""));
+  std::string s = "method \"";
   s += desc.getSignature(true, false);
-  s += ulxr_i18n(ULXR_PCHAR("\" unknown method and/or signature."));
+  s += "\" unknown method and/or signature.";
   return MethodResponse (MethodNotFoundError, s);
 }
 
 
-ULXR_API_IMPL(void) Dispatcher::sendResponse(const MethodResponse &resp)
+void Dispatcher::sendResponse(const MethodResponse &resp)
 {
-  ULXR_TRACE(ULXR_PCHAR("sendResponse"));
-  protocol->sendRpcResponse(resp, wbxml_mode);
+  ULXR_TRACE("sendResponse");
+  protocol->sendRpcResponse(resp);
 }
 
 
-ULXR_API_IMPL(void) Dispatcher::setupSystemMethods()
+void Dispatcher::setupSystemMethods()
 {
-  ULXR_TRACE(ULXR_PCHAR("setupSystemMethods"));
+  ULXR_TRACE("setupSystemMethods");
 
   addMethod(&Dispatcher::xml_pretty_print,
-            ULXR_PCHAR(""), ULXR_PCHAR("ulxmlrpcpp.pretty_print"), ULXR_PCHAR("bool"),
-            ulxr_i18n(ULXR_PCHAR("Enable pretty-printed xml responses.")));
+            "", "ulxmlrpcpp.pretty_print", "bool",
+            "Enable pretty-printed xml responses.");
 
   //--
 
   addMethod(&Dispatcher::system_listMethods,
-            ULXR_PCHAR("array"), ULXR_PCHAR("system.listMethods"), ULXR_PCHAR(""),
-            ulxr_i18n(ULXR_PCHAR("Lists all methods implemented by this server.")));
+            "array", "system.listMethods", "",
+            "Lists all methods implemented by this server.");
 
   addMethod( &Dispatcher::system_listMethods,
-            ULXR_PCHAR("array"),ULXR_PCHAR("system.listMethods"), ULXR_PCHAR("string"),
-            ulxr_i18n(ULXR_PCHAR("Lists all methods implemented by this server (overloaded).")));
+            "array","system.listMethods", "string",
+            "Lists all methods implemented by this server (overloaded).");
 
   addMethod( &Dispatcher::system_methodSignature,
-            ULXR_PCHAR("array"), ULXR_PCHAR("system.methodSignature"), ULXR_PCHAR("string"),
-            ulxr_i18n(ULXR_PCHAR("Returns an array of possible signatures for this method.")));
+            "array", "system.methodSignature", "string",
+            "Returns an array of possible signatures for this method.");
 
   addMethod(&Dispatcher::system_methodHelp,
-            ULXR_PCHAR("string"), ULXR_PCHAR("system.methodHelp"), ULXR_PCHAR("string"),
-            ulxr_i18n(ULXR_PCHAR("Returns a documentation string describing the use of this method.")));
+            "string", "system.methodHelp", "string",
+            "Returns a documentation string describing the use of this method.");
 
   addMethod(&Dispatcher::system_getCapabilities,
-            ULXR_PCHAR("struct"), ULXR_PCHAR("system.getCapabilities"), ULXR_PCHAR(""),
-            ulxr_i18n(ULXR_PCHAR("Returns Structs describing available capabilities.")));
+            "struct", "system.getCapabilities", "",
+            "Returns Structs describing available capabilities.");
 }
 
 
-ULXR_API_IMPL(MethodResponse)
+MethodResponse
    Dispatcher::xml_pretty_print(const MethodCall &calldata,
                                 const Dispatcher *disp)
 {
-  ULXR_TRACE(ULXR_PCHAR("xml_pretty_print"));
+  ULXR_TRACE("xml_pretty_print");
   if (calldata.numParams() > 1)
     throw ParameterException(InvalidMethodParameterError,
-                             ulxr_i18n(ULXR_PCHAR("At most 1 parameter allowed for \"system.listMethods\"")));
+                             "At most 1 parameter allowed for \"system.listMethods\"");
 
   if (   calldata.numParams() == 1
       && calldata.getParam(0).getType() != RpcBoolean)
     throw ParameterException(InvalidMethodParameterError,
-                             ulxr_i18n(ULXR_PCHAR("Parameter 1 not of type \"Boolean\" \"ulxmlrpcpp.xml_pretty_print\"")));
+                             "Parameter 1 not of type \"Boolean\" \"ulxmlrpcpp.xml_pretty_print\"");
 
   bool enable = Boolean(calldata.getParam(0)).getBoolean();
   enableXmlPrettyPrint(enable);
@@ -580,24 +545,24 @@ ULXR_API_IMPL(MethodResponse)
 }
 
 
-ULXR_API_IMPL(MethodResponse)
+MethodResponse
    Dispatcher::system_listMethods(const MethodCall &calldata,
                                   const Dispatcher *disp)
 {
-  ULXR_TRACE(ULXR_PCHAR("system_listMethods"));
+  ULXR_TRACE("system_listMethods");
   if (calldata.numParams() > 1)
     throw ParameterException(InvalidMethodParameterError,
-                             ulxr_i18n(ULXR_PCHAR("At most 1 parameter allowed for \"system.listMethods\"")));
+                             "At most 1 parameter allowed for \"system.listMethods\"");
 
   if (   calldata.numParams() == 1
       && calldata.getParam(0).getType() != RpcStrType)
     throw ParameterException(InvalidMethodParameterError,
-                             ulxr_i18n(ULXR_PCHAR("Parameter 1 not of type \"String\" \"system.listMethods\"")));
+                             "Parameter 1 not of type \"String\" \"system.listMethods\"");
 
 // FIXME: what to do with param 1 if present ??
 
   Array arr;
-  CppString m_prev;
+  std::string m_prev;
 
   MethodCallMap::const_iterator it;
   for (it = disp->methodcalls.begin(); it != disp->methodcalls.end(); ++it)
@@ -611,31 +576,31 @@ ULXR_API_IMPL(MethodResponse)
 }
 
 
-ULXR_API_IMPL(MethodResponse)
+MethodResponse
    Dispatcher::system_methodSignature(const MethodCall &calldata,
                                       const Dispatcher *disp)
 {
-  ULXR_TRACE(ULXR_PCHAR("system_methodSignature"));
+  ULXR_TRACE("system_methodSignature");
   if (calldata.numParams() != 1)
     throw ParameterException(InvalidMethodParameterError,
-                             ulxr_i18n(ULXR_PCHAR("Exactly 1 parameter allowed for \"system.methodSignature\"")));
+                             "Exactly 1 parameter allowed for \"system.methodSignature\"");
 
   if (calldata.getParam(0).getType() != RpcStrType)
     throw ParameterException(InvalidMethodParameterError,
-                             ulxr_i18n(ULXR_PCHAR("Parameter 1 not of type \"String\" \"system.listMethods\"")));
+                             "Parameter 1 not of type \"String\" \"system.listMethods\"");
 
   RpcString vs = calldata.getParam(0);
-  CppString name = vs.getString();
+  std::string name = vs.getString();
   MethodCallMap::const_iterator it;
   Array ret_arr;
   for (it = disp->methodcalls.begin(); it != disp->methodcalls.end(); ++it)
   {
     Array sigarr;
-    CppString sig = (*it).first.getSignature(true, true);
+    std::string sig = (*it).first.getSignature(true, true);
     if (name == (*it).first.method_name && sig.length() != 0)
     {
       std::size_t pos;
-      while ((pos = sig.find(',')) != CppString::npos)
+      while ((pos = sig.find(',')) != std::string::npos)
       {
         sigarr.addItem(RpcString(sig.substr(0, pos)));
         sig.erase(0, pos+1);
@@ -652,25 +617,25 @@ ULXR_API_IMPL(MethodResponse)
 }
 
 
-ULXR_API_IMPL(MethodResponse)
+MethodResponse
    Dispatcher::system_methodHelp(const MethodCall &calldata,
                                  const Dispatcher *disp)
 {
-  ULXR_TRACE(ULXR_PCHAR("system_methodHelp"));
+  ULXR_TRACE("system_methodHelp");
   if (calldata.numParams() != 1)
     throw ParameterException(InvalidMethodParameterError,
-                             ulxr_i18n(ULXR_PCHAR("Exactly 1 parameter allowed for \"system.methodHelp\"")));
+                             "Exactly 1 parameter allowed for \"system.methodHelp\"");
 
   if (calldata.getParam(0).getType() != RpcStrType)
     throw ParameterException(InvalidMethodParameterError,
-                             ulxr_i18n(ULXR_PCHAR("Parameter 1 not of type \"String\" \"system.listMethods\"")));
+                             "Parameter 1 not of type \"String\" \"system.listMethods\"");
 
   RpcString vs = calldata.getParam(0);
-  CppString name = vs.getString();
-  CppString s;
+  std::string name = vs.getString();
+  std::string s;
 
   MethodCallMap::const_iterator it;
-  CppString s_prev;
+  std::string s_prev;
   for (it = disp->methodcalls.begin(); it != disp->methodcalls.end(); ++it)
     if (name == (*it).first.method_name && (*it).first.documentation.length() != 0)
     {
@@ -678,7 +643,7 @@ ULXR_API_IMPL(MethodResponse)
           && (*it).first.documentation.length() != 0)
       {
         if (s.length() != 0)
-          s = ULXR_PCHAR("* ") +s + ULXR_PCHAR("\n* ");
+          s = "* " +s + "\n* ";
         s += (*it).first.documentation;
       }
       s_prev = (*it).first.documentation;
@@ -688,46 +653,46 @@ ULXR_API_IMPL(MethodResponse)
 }
 
 
-ULXR_API_IMPL(void) Dispatcher::getCapabilities (Struct &str) const
+void Dispatcher::getCapabilities (Struct &str) const
 {
   // parent::getCapabilities (str);  just in case..
-  str.addMember(ULXR_PCHAR("specUrl"),
-               RpcString(ULXR_PCHAR("http://xmlrpc-epi.sourceforge.net/specs/rfc.fault_codes.php")));
-  str.addMember(ULXR_PCHAR("specVersion"), Integer(20010516));
+  str.addMember("specUrl",
+               RpcString("http://xmlrpc-epi.sourceforge.net/specs/rfc.fault_codes.php"));
+  str.addMember("specVersion", Integer(20010516));
 }
 
 
-ULXR_API_IMPL(MethodResponse)
+MethodResponse
   Dispatcher::system_getCapabilities(const MethodCall &calldata,
                                      const Dispatcher *disp)
 {
   if (calldata.numParams() > 1)
     throw ParameterException(InvalidMethodParameterError,
-                             ulxr_i18n(ULXR_PCHAR("No parameters allowed for \"system.listMethods\"")));
+                             "No parameters allowed for \"system.listMethods\"");
 
   Struct sysCap;
   disp->getCapabilities(sysCap);
 
   Struct opStr;
-  opStr.addMember(ULXR_PCHAR("faults_interop"), sysCap);
+  opStr.addMember("faults_interop", sysCap);
   return MethodResponse (opStr);
 }
 
 
-ULXR_API_IMPL(Protocol*) Dispatcher::getProtocol() const
+Protocol* Dispatcher::getProtocol() const
 {
   return protocol;
 }
 
 
-ULXR_API_IMPL(void) Dispatcher::setProtocol(Protocol *prot)
+void Dispatcher::setProtocol(Protocol *prot)
 {
   protocol = prot;
 }
 
 namespace hidden {
 
-ULXR_API_IMPL0 MethodWrapperBase::~MethodWrapperBase()
+ MethodWrapperBase::~MethodWrapperBase()
 {
 }
 

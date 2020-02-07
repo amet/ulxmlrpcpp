@@ -5,7 +5,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: ulxr_xmlparse_base.h 940 2006-12-30 18:22:05Z ewald-arnold $
+    $Id: ulxr_xmlparse_base.h 10939 2011-09-12 13:22:25Z korosteleva $
 
  ***************************************************************************/
 
@@ -30,15 +30,10 @@
 #ifndef ULXR_XMLPARSE_BASE
 #define ULXR_XMLPARSE_BASE
 
-#ifdef HAVE_XMLPARSE_H
-#include <xmlparse.h>
-#else
 #include <expat.h>
 #undef  XMLPARSEAPI
 #define XMLPARSEAPI
-#endif
-
-#include <ulxmlrpcpp/ulxmlrpcpp.h>  // always first header
+#include <ulxmlrpcpp/ulxmlrpcpp.h>
 
 #include <stack>
 
@@ -49,7 +44,7 @@ namespace ulxr {
 /** Base class for XML parsing.
   * @ingroup grp_ulxr_parser
   */
-class ULXR_API_DECL0 XmlParserBase
+class  XmlParserBase
 {
  public:
 
@@ -90,7 +85,7 @@ class ULXR_API_DECL0 XmlParserBase
    * @param code  error code
    * @return  pointer to description
    */
-   virtual CppString getErrorString(unsigned code) const = 0;
+   virtual std::string getErrorString(unsigned code) const = 0;
 
  /** Gets the line number in the xml data.
    * Because the binary data has nothing like a line number, the occurence number
@@ -114,7 +109,7 @@ class ULXR_API_DECL0 XmlParserBase
 
 /** Helper class to represent the data of the current parsing step.
   */
-  class ULXR_API_DECL0 ParserState
+  class  ParserState
   {
    public:
 
@@ -146,7 +141,7 @@ class ULXR_API_DECL0 XmlParserBase
      * Useful only for debugging.
      * @return the name of actual ParserState
      */
-     virtual CppString getStateName() const;
+     virtual std::string getStateName() const;
 
    /** Appends some characters of the ParserState.
      * This is a part of the data of an xml rpc element.
@@ -164,14 +159,14 @@ class ULXR_API_DECL0 XmlParserBase
    /** Gets the characters of the ParserState.
      * @return  the data element
      */
-     CppString getCharData() const;
+     std::string getCharData() const;
 
    private:
 
      ParserState(const ParserState&); // forbid this
      ParserState& operator= (const ParserState&);
 
-     CppString  cdata;
+     std::string  cdata;
      unsigned   state;
      unsigned   prevstate;
   };

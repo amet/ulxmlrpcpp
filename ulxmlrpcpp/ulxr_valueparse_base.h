@@ -5,7 +5,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: ulxr_valueparse_base.h 1154 2009-08-16 09:24:53Z ewald-arnold $
+    $Id: ulxr_valueparse_base.h 10942 2011-09-13 14:35:52Z korosteleva $
 
  ***************************************************************************/
 
@@ -30,7 +30,7 @@
 #ifndef ULXR_VALUEPARSE_BASE_H
 #define ULXR_VALUEPARSE_BASE_H
 
-#include <ulxmlrpcpp/ulxmlrpcpp.h>  // always first header
+#include <ulxmlrpcpp/ulxmlrpcpp.h>
 
 #include <ulxmlrpcpp/ulxr_value.h>
 #include <ulxmlrpcpp/ulxr_xmlparse_base.h>
@@ -39,7 +39,7 @@
 namespace ulxr {
 
 
-/** Base class for WBXML RPC parsing.
+/** Base class for  RPC parsing.
   *
   * IMPORTANT:
   * The current "Value" is moved around via pointers and is not
@@ -49,7 +49,7 @@ namespace ulxr {
   * @see ArrayState::takeValue
   * @ingroup grp_ulxr_parser
   */
-class ULXR_API_DECL0 ValueParserBase
+class  ValueParserBase
 {
  public:
 
@@ -74,7 +74,7 @@ class ULXR_API_DECL0 ValueParserBase
 
 /** Helper class to represent the data of the current parsing step.
   */
-  class ULXR_API_DECL0 ValueState : public XmlParserBase::ParserState
+  class  ValueState : public XmlParserBase::ParserState
   {
    public:
 
@@ -96,25 +96,25 @@ class ULXR_API_DECL0 ValueParserBase
      * Used only for Structs.
      * @param  name   the member name
      */
-     virtual void takeName(const CppString &name);
+     virtual void takeName(const std::string &name);
 
    /** Gets the name of the state.
      * Useful only for debugging.
      * @return the name of actual state
      */
-     virtual CppString getStateName() const;
+     virtual std::string getStateName() const;
 
    /** Gets the name of the member.
      * Used only with Structs
      * @return the member name
      */
-     CppString getName() const;
+     std::string getName() const;
 
    /** Sets the name of the member.
      * Used only with Structs
      * @param  name   the member name
      */
-     void setName(const CppString &name);
+     void setName(const std::string &name);
 
    /** Gets the Value of this state.
      * @return the Value.
@@ -128,7 +128,7 @@ class ULXR_API_DECL0 ValueParserBase
 
    private:
 
-     CppString  name;
+     std::string  name;
 
      ValueState(const ValueState&); // forbid this
      ValueState& operator= (const ValueState&);
@@ -139,7 +139,7 @@ class ULXR_API_DECL0 ValueParserBase
 /** Helper class to represent the data of the current parsing step
   * when the xml element is a Struct.
   */
-  class ULXR_API_DECL0 MemberState : public ValueState
+  class  MemberState : public ValueState
   {
    public:
 
@@ -159,7 +159,7 @@ class ULXR_API_DECL0 ValueParserBase
    /** Transfers a member name into the MemberState.
      * @param  name   the member name
      */
-     virtual void takeName(const CppString &name);
+     virtual void takeName(const std::string &name);
 
    protected:
 
@@ -174,7 +174,7 @@ class ULXR_API_DECL0 ValueParserBase
 /** Helper class to represent the data of the current parsing step
   * when the xml element is an Array.
   */
-  class ULXR_API_DECL0 ArrayState : public ValueState
+  class  ArrayState : public ValueState
   {
    public:
 

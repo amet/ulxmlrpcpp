@@ -5,7 +5,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: ulxr_callparse_base.cpp 940 2006-12-30 18:22:05Z ewald-arnold $
+    $Id: ulxr_callparse_base.cpp 10942 2011-09-13 14:35:52Z korosteleva $
 
  ***************************************************************************/
 
@@ -28,8 +28,8 @@
  ***************************************************************************/
 
 
-#define ULXR_NEED_EXPORTS
-#include <ulxmlrpcpp/ulxmlrpcpp.h>  // always first header
+
+#include <ulxmlrpcpp/ulxmlrpcpp.h>
 
 #include <ulxmlrpcpp/ulxr_callparse_base.h>
 
@@ -37,30 +37,30 @@
 namespace ulxr {
 
 
-ULXR_API_IMPL0 MethodCallParserBase::~MethodCallParserBase()
+ MethodCallParserBase::~MethodCallParserBase()
 {
 }
 
 
-ULXR_API_IMPL(unsigned) MethodCallParserBase::numParams() const
+unsigned MethodCallParserBase::numParams() const
 {
   return methodcall.numParams();
 }
 
 
-ULXR_API_IMPL(Value) MethodCallParserBase::getParam(unsigned ind) const
+Value MethodCallParserBase::getParam(unsigned ind) const
 {
   return methodcall.getParam(ind);
 }
 
 
-ULXR_API_IMPL(CppString) MethodCallParserBase::getMethodName() const
+std::string MethodCallParserBase::getMethodName() const
 {
   return methodcall.getMethodName();
 }
 
 
-ULXR_API_IMPL(MethodCall) MethodCallParserBase::getMethodCall() const
+MethodCall MethodCallParserBase::getMethodCall() const
 {
   return methodcall;
 }

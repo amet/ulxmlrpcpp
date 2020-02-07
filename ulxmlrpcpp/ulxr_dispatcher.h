@@ -5,7 +5,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: ulxr_dispatcher.h 1026 2007-07-25 07:48:09Z ewald-arnold $
+    $Id: ulxr_dispatcher.h 10942 2011-09-13 14:35:52Z korosteleva $
 
  ***************************************************************************/
 
@@ -30,7 +30,7 @@
 #ifndef ULXR_DISPATCHER_H
 #define ULXR_DISPATCHER_H
 
-#include <ulxmlrpcpp/ulxmlrpcpp.h>  // always first header
+#include <ulxmlrpcpp/ulxmlrpcpp.h>
 
 #include <ulxmlrpcpp/ulxr_call.h>
 #include <ulxmlrpcpp/ulxr_response.h>
@@ -51,15 +51,13 @@ class Signature;
   * and the according method is called afterwards the response is
   * converted into xml and sent back to the requester.
   * Direct use of this class is intended for proprietary connections.
-  * If you go the usual way via http you ought to use the HttpServer class
-  * and run "picoHttpd"
   * @ingroup grp_ulxr_rpc
   */
-class ULXR_API_DECL0 Dispatcher : public MethodAdder
+class  Dispatcher : public MethodAdder
 {
  public:
 
-   struct ULXR_API_DECL0 MethodCallDescriptor
+   struct  MethodCallDescriptor
    {
 
      friend class Dispatcher;
@@ -77,10 +75,10 @@ class ULXR_API_DECL0 Dispatcher : public MethodAdder
      * @param help       description of method
      */
      MethodCallDescriptor(CallType calltype,
-                          const CppString &ret_sig,
-                          const CppString &name,
-                          const CppString &signature,
-                          const CppString &help);
+                          const std::string &ret_sig,
+                          const std::string &name,
+                          const std::string &signature,
+                          const std::string &help = "");
 
    /** Compares two method call descriptors.
      * @return true: both are NOT equal
@@ -99,7 +97,7 @@ class ULXR_API_DECL0 Dispatcher : public MethodAdder
      * @param with_return  includes also the return type (at the begining)
      * @return the signature as string
      */
-     CppString getSignature(bool with_name, bool with_return) const;
+     std::string getSignature(bool with_name, bool with_return) const;
 
    /** The the invocation counter.
      * @return how many this methods was invoked
@@ -123,22 +121,22 @@ class ULXR_API_DECL0 Dispatcher : public MethodAdder
    /** Gets the method name
      * @return method name
      */
-     CppString getMethodName() const;
+     std::string getMethodName() const;
 
    /** Gets the parameter signature
      * @return parameter signature
      */
-     CppString getParameterSignature() const;
+     std::string getParameterSignature() const;
 
    /** Gets the return value signature
      * @return return value signature
      */
-     CppString getReturnValueSignature() const;
+     std::string getReturnValueSignature() const;
 
    /** Gets the documentation
      * @return documentation
      */
-     CppString getDocumentation() const;
+     std::string getDocumentation() const;
 
    /** Gets the call type
      * @return call type
@@ -148,10 +146,10 @@ class ULXR_API_DECL0 Dispatcher : public MethodAdder
     private:
 
      CallType         calltype;
-     CppString        method_name;
-     CppString        signature;
-     CppString        return_signature;
-     CppString        documentation;
+     std::string        method_name;
+     std::string        signature;
+     std::string        return_signature;
+     std::string        documentation;
 
      mutable unsigned long  invoked;
      mutable bool           enabled;
@@ -169,9 +167,8 @@ class ULXR_API_DECL0 Dispatcher : public MethodAdder
 
  /** Constructs a dispatcher.
    * @param  prot        pointer to an existing Protocol
-   * @param  wbxml_mode  true: data is sent as wbxml
    */
-   Dispatcher (Protocol* prot = 0, bool wbxml_mode = false);
+   Dispatcher (Protocol* prot = 0);
 
  /** Destroys the dispatcher.
    * Important: Also frees wrapper objects to worker classes since Dispatcher
@@ -191,10 +188,10 @@ class ULXR_API_DECL0 Dispatcher : public MethodAdder
    * @param  help           short usage description
    */
    void addMethod (StaticMethodCall_t adr,
-                   const CppString &ret_signature,
-                   const CppString &name,
-                   const CppString &signature,
-                   const CppString &help);
+                   const std::string &ret_signature,
+                   const std::string &name,
+                   const std::string &signature,
+                   const std::string &help = "");
 
  /** Adds a user defined (dynamic) method to the dispatcher.
    * You access a remote method by sending the "official" name. Sometimes
@@ -209,10 +206,10 @@ class ULXR_API_DECL0 Dispatcher : public MethodAdder
    * @param  help           short usage description
    */
    void addMethod (DynamicMethodCall_t wrapper,
-                   const CppString &ret_signature,
-                   const CppString &name,
-                   const CppString &signature,
-                   const CppString &help);
+                   const std::string &ret_signature,
+                   const std::string &name,
+                   const std::string &signature,
+                   const std::string &help = "");
 
  /** Adds a system internal method to the dispatcher.
    * You access a remote method by sending the "official" name. Sometimes
@@ -226,10 +223,10 @@ class ULXR_API_DECL0 Dispatcher : public MethodAdder
    * @param  help           short usage description
    */
    void addMethod (SystemMethodCall_t adr,
-                   const CppString &ret_signature,
-                   const CppString &name,
-                   const CppString &signature,
-                   const CppString &help);
+                   const std::string &ret_signature,
+                   const std::string &name,
+                   const std::string &signature,
+                   const std::string &help = "");
 
  /** Adds a user defined (static) method to the dispatcher.
    * You access a remote method by sending the "official" name. Sometimes
@@ -244,9 +241,9 @@ class ULXR_API_DECL0 Dispatcher : public MethodAdder
    */
    void addMethod (StaticMethodCall_t adr,
                    const Signature &ret_signature,
-                   const CppString &name,
+                   const std::string &name,
                    const Signature &signature,
-                   const CppString &help);
+                   const std::string &help = "");
 
  /** Adds a user defined (dynamic) method to the dispatcher.
    * You access a remote method by sending the "official" name. Sometimes
@@ -262,9 +259,9 @@ class ULXR_API_DECL0 Dispatcher : public MethodAdder
    */
    void addMethod (DynamicMethodCall_t wrapper,
                    const Signature &ret_signature,
-                   const CppString &name,
+                   const std::string &name,
                    const Signature &signature,
-                   const CppString &help);
+                   const std::string &help = "");
 
  /** Adds a system internal method to the dispatcher.
    * You access a remote method by sending the "official" name. Sometimes
@@ -279,9 +276,9 @@ class ULXR_API_DECL0 Dispatcher : public MethodAdder
    */
    void addMethod (SystemMethodCall_t adr,
                    const Signature &ret_signature,
-                   const CppString &name,
+                   const std::string &name,
                    const Signature &signature,
-                   const CppString &help);
+                   const std::string &help = "");
 
  /** Waits for an incoming method call.
    * @param timeout the timeout value [sec] (0 - no timeout)
@@ -338,7 +335,7 @@ class ULXR_API_DECL0 Dispatcher : public MethodAdder
  /** Removes a method if available
    * @param name   method name
    */
-   void removeMethod(const CppString &name);
+   void removeMethod(const std::string &name);
 
  protected:
 
@@ -408,7 +405,6 @@ class ULXR_API_DECL0 Dispatcher : public MethodAdder
 
    MethodCallMap             methodcalls;
    Protocol                 *protocol;
-   bool                      wbxml_mode;
 };
 
 

@@ -5,7 +5,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: ulxr_value.h 1151 2009-08-12 15:12:01Z ewald-arnold $
+    $Id: ulxr_value.h 10942 2011-09-13 14:35:52Z korosteleva $
 
  ***************************************************************************/
 
@@ -31,7 +31,7 @@
 #define ULXR_VALUE_H
 
 
-#include <ulxmlrpcpp/ulxmlrpcpp.h>  // always first header
+#include <ulxmlrpcpp/ulxmlrpcpp.h>
 
 #include <map>
 #include <vector>
@@ -68,7 +68,7 @@ class ValueBase;
 /** Abstraction of an XML RPC parameter.
   * Parameters are passed to and returned by method calls.
   */
-class ULXR_API_DECL0 Value
+class  Value
 {
  public:
 
@@ -121,8 +121,6 @@ class ULXR_API_DECL0 Value
    */
    Value (const DateTime &val);
 
-#ifdef ULXR_USE_INTRINSIC_VALUE_TYPES
-
  /** Creates a value from a const char*
    * @param  val  the source value
    */
@@ -148,7 +146,6 @@ class ULXR_API_DECL0 Value
    */
    Value (const bool &val);
 
-#endif
 
  /** Destroys the Value
    */
@@ -164,15 +161,7 @@ class ULXR_API_DECL0 Value
    * @param deep  if nested types exist, include them
    * @return  The signature
    */
-   CppString getSignature(bool deep = false) const;
-
- /** Returns the call as binary xml string.
-   * The method call is converted to a wbxml sequence. It is prepended with
-   * the necessary xml procession instruction with version and encoding
-   * set to UTF-8.
-   * @return  The wbxml content
-   */
-   virtual std::string getWbXml() const;
+   std::string getSignature(bool deep = false) const;
 
  /** Returns the value as xml string.
    * The content and its type name is converted to an xml text.
@@ -181,7 +170,7 @@ class ULXR_API_DECL0 Value
    * @param  indent   current indentation level
    * @return  The xml content
    */
-   CppString getXml(int indent = 0) const;
+   std::string getXml(int indent = 0) const;
 
  /** Converts the Value into a Void.
    * If the type does not match exactly a RuntimeException is thrown.
@@ -367,7 +356,7 @@ class ULXR_API_DECL0 Value
  /** Returns the C++-name of the ValueType.
    * @return type name
    */
-   CppString getTypeName() const;
+   std::string getTypeName() const;
 
  private:
 
@@ -395,7 +384,7 @@ class ULXR_API_DECL0 Value
   * There exists several specialized parameter classes for number
   * and string types and collections of parameters.
   */
-class ULXR_API_DECL0 ValueBase
+class  ValueBase
 {
  public:
 
@@ -468,15 +457,7 @@ class ULXR_API_DECL0 ValueBase
    * @param deep  if nested types exist, include them
    * @return  The signature
    */
-   virtual CppString getSignature(bool deep = false) const = 0;
-
- /** Returns the call as binary xml string.
-   * The method call is converted to a wbxml sequence. It is prepended with
-   * the necessary xml procession instruction with version and encoding
-   * set to UTF-8.
-   * @return  The wbxml content
-   */
-   virtual std::string getWbXml() const = 0;
+   virtual std::string getSignature(bool deep = false) const = 0;
 
  /** Returns the value as xml string.
    * The content and its type name is converted to an xml text.
@@ -485,12 +466,12 @@ class ULXR_API_DECL0 ValueBase
    * @param  indent   current indentation level
    * @return  The xml content
    */
-   virtual CppString getXml(int indent = 0) const = 0;
+   virtual std::string getXml(int indent = 0) const = 0;
 
  /** Returns the C++-name of the ValueType.
    * @return type name
    */
-   CppString getTypeName() const;
+   std::string getTypeName() const;
 
  private:
 
@@ -510,7 +491,7 @@ class ULXR_API_DECL0 ValueBase
   * @attention The void type is only a helper class and not
   *            intended for direct use.
   */
-class ULXR_API_DECL0 Void : public ValueBase
+class  Void : public ValueBase
 {
  public:
 
@@ -533,20 +514,12 @@ class ULXR_API_DECL0 Void : public ValueBase
    * @param deep  if nested types exist, include them
    * @return  The signature
    */
-   virtual CppString getSignature(bool deep = false) const;
+   virtual std::string getSignature(bool deep = false) const;
 
  /** Returns the xml name of the Value.
    * @return value name
    */
-   static CppString getValueName();
-
- /** Returns the call as binary xml string.
-   * The method call is converted to a wbxml sequence. It is prepended with
-   * the necessary xml procession instruction with version and encoding
-   * set to UTF-8.
-   * @return  The wbxml content
-   */
-   virtual std::string getWbXml() const;
+   static std::string getValueName();
 
  /** Returns the value as xml string.
    * The content and its type name is converted to an xml text.
@@ -555,7 +528,7 @@ class ULXR_API_DECL0 Void : public ValueBase
    * @param  indent   current indentation level
    * @return  The xml content
    */
-   virtual CppString getXml(int indent = 0) const;
+   virtual std::string getXml(int indent = 0) const;
 
  private:
 
@@ -570,7 +543,7 @@ class ULXR_API_DECL0 Void : public ValueBase
   * Boolean values can either be "true" or "false".
   * @ingroup grp_ulxr_value_type
   */
-class ULXR_API_DECL0 Boolean : public ValueBase
+class  Boolean : public ValueBase
 {
  public:
 
@@ -587,7 +560,7 @@ class ULXR_API_DECL0 Boolean : public ValueBase
  /** Constructs a Boolean.
    * @param s  value as string (true, on and 1 count as TRUE)
    */
-   Boolean (const CppString &s);
+   Boolean (const std::string &s);
 
  /** Destroys the Value
    */
@@ -613,29 +586,21 @@ class ULXR_API_DECL0 Boolean : public ValueBase
    * @param deep  if nested types exist, include them
    * @return  The signature
    */
-   virtual CppString getSignature(bool deep = false) const;
+   virtual std::string getSignature(bool deep = false) const;
 
  /** Returns the xml name of the Value.
    * @return value name
    */
-   static CppString getValueName();
+   static std::string getValueName();
 
- /** Returns the call as binary xml string.
-   * The method call is converted to a wbxml sequence. It is prepended with
-   * the necessary xml procession instruction with version and encoding
-   * set to UTF-8.
-   * @return  The wbxml content
-   */
-   virtual std::string getWbXml() const;
-
- /** Returns the value as xml string.
+  /** Returns the value as xml string.
    * The content and its type name is converted to an xml text.
    * The structure of the text is indented to facilitate easy reading
    * of larger blocks.
    * @param  indent   current indentation level
    * @return  The xml content
    */
-   virtual CppString getXml(int indent = 0) const;
+   virtual std::string getXml(int indent = 0) const;
 
  private:
 
@@ -650,7 +615,7 @@ class ULXR_API_DECL0 Boolean : public ValueBase
   * Integer values have 32 or more bits and are signed.
   * @ingroup grp_ulxr_value_type
   */
-class ULXR_API_DECL0 Integer : public ValueBase
+class  Integer : public ValueBase
 {
  public:
 
@@ -666,7 +631,7 @@ class ULXR_API_DECL0 Integer : public ValueBase
  /** Constructs an Integer.
    * @param  s  value for the construction as number string
    */
-   Integer (const CppString &s);
+   Integer (const std::string &s);
 
  /** Destroys the Value
    */
@@ -692,20 +657,12 @@ class ULXR_API_DECL0 Integer : public ValueBase
    * @param deep  if nested types exist, include them
    * @return  The signature
    */
-  virtual CppString getSignature(bool deep = false) const;
+  virtual std::string getSignature(bool deep = false) const;
 
  /** Returns the xml name of the Value.
    * @return value name
    */
-   static CppString getValueName();
-
- /** Returns the call as binary xml string.
-   * The method call is converted to a wbxml sequence. It is prepended with
-   * the necessary xml procession instruction with version and encoding
-   * set to UTF-8.
-   * @return  The wbxml content
-   */
-   virtual std::string getWbXml() const;
+   static std::string getValueName();
 
  /** Returns the value as xml string.
    * The content and its type name is converted to an xml text.
@@ -714,7 +671,7 @@ class ULXR_API_DECL0 Integer : public ValueBase
    * @param  indent   current indentation level
    * @return  The xml content
    */
-   virtual CppString getXml(int indent = 0) const;
+   virtual std::string getXml(int indent = 0) const;
 
  private:
 
@@ -731,7 +688,7 @@ class ULXR_API_DECL0 Integer : public ValueBase
   * a "double" in C.
   * @ingroup grp_ulxr_value_type
   */
-class ULXR_API_DECL0 Double : public ValueBase
+class  Double : public ValueBase
 {
  public:
 
@@ -747,7 +704,7 @@ class ULXR_API_DECL0 Double : public ValueBase
  /** Constructs a Double.
    * @param  s  value for the construction as number string
    */
-   Double (const CppString &s);
+   Double (const std::string &s);
 
  /** Destroys the Value
    */
@@ -773,20 +730,12 @@ class ULXR_API_DECL0 Double : public ValueBase
    * @param deep  if nested types exist, include them
    * @return  The signature
    */
-   virtual CppString getSignature(bool deep = false) const;
+   virtual std::string getSignature(bool deep = false) const;
 
  /** Returns the xml name of the Value.
    * @return value name
    */
-   static CppString getValueName();
-
- /** Returns the call as binary xml string.
-   * The method call is converted to a wbxml sequence. It is prepended with
-   * the necessary xml procession instruction with version and encoding
-   * set to UTF-8.
-   * @return  The wbxml content
-   */
-   virtual std::string getWbXml() const;
+   static std::string getValueName();
 
  /** Returns the value as xml string.
    * The content and its type name is converted to an xml text.
@@ -795,7 +744,7 @@ class ULXR_API_DECL0 Double : public ValueBase
    * @param  indent   current indentation level
    * @return  The xml content
    */
-   virtual CppString getXml(int indent = 0) const;
+   virtual std::string getXml(int indent = 0) const;
 
  /** Switches the conversion mode for double values.
    * Large numbers create large strings for the number without necessarily increasing
@@ -826,7 +775,7 @@ class ULXR_API_DECL0 Double : public ValueBase
   * You access the elements by their index.
   * @ingroup grp_ulxr_value_type
   */
-class ULXR_API_DECL0 Array : public ValueBase
+class  Array : public ValueBase
 {
  public:
 
@@ -853,8 +802,9 @@ class ULXR_API_DECL0 Array : public ValueBase
  /** Returns a the content of an array member.
    * Counting starts with "0".
    * @param  idx     index of the desired Value
+   * @throw Exception if array index is out of range
    */
-   Value getItem(unsigned idx);
+   Value getItem(unsigned idx) const;
 
  /** Returns the number of array members.
    * @return the array size
@@ -872,20 +822,12 @@ class ULXR_API_DECL0 Array : public ValueBase
    * @param deep  if nested types exist, include them
    * @return  The signature
    */
-   virtual CppString getSignature(bool deep = false) const;
+   virtual std::string getSignature(bool deep = false) const;
 
  /** Returns the xml name of the Value.
    * @return value name
    */
-   static CppString getValueName();
-
- /** Returns the call as binary xml string.
-   * The method call is converted to a wbxml sequence. It is prepended with
-   * the necessary xml procession instruction with version and encoding
-   * set to UTF-8.
-   * @return  The wbxml content
-   */
-   virtual std::string getWbXml() const;
+   static std::string getValueName();
 
  /** Returns the value as xml string.
    * The content and its type name is converted to an xml text.
@@ -894,7 +836,7 @@ class ULXR_API_DECL0 Array : public ValueBase
    * @param  indent   current indentation level
    * @return  The xml content
    */
-   virtual CppString getXml(int indent = 0) const;
+   virtual std::string getXml(int indent = 0) const;
 
  /** Removes all elements of the Array.
    */
@@ -925,7 +867,7 @@ Array& operator<< (Array& array, const T& t)
   * and not by their index.
   * @ingroup grp_ulxr_value_type
   */
-class ULXR_API_DECL0 Struct : public ValueBase
+class  Struct : public ValueBase
 {
  public:
 
@@ -943,24 +885,24 @@ class ULXR_API_DECL0 Struct : public ValueBase
    * @param  name the name of the member
    * @param  item its content
    */
-   void addMember(const CppString &name, const Value &item);
+   void addMember(const std::string &name, const Value &item);
 
  /** Gets a list of all member names.
    * @return vector with all member names
    */
-   std::vector<CppString> getMemberNames() const;
+   std::vector<std::string> getMemberNames() const;
 
  /** Returns the Value of a member.
    * @param  name the name of the member
    * @return the members Value
    */
-   Value getMember(const CppString &name) const;
+   Value getMember(const std::string &name) const;
 
  /** Tests if a member exists.
    * @param  name the name of the member
    * @return true, if the member exists
    */
-   bool hasMember(const CppString &name) const;
+   bool hasMember(const std::string &name) const;
 
  /** Returns the number of array members.
    * @return the array size
@@ -979,20 +921,12 @@ class ULXR_API_DECL0 Struct : public ValueBase
    * @param deep  if nested types exist, include them
    * @return  The signature
    */
-   virtual CppString getSignature(bool deep = false) const;
+   virtual std::string getSignature(bool deep = false) const;
 
  /** Returns the xml name of the Value.
    * @return value name
    */
-   static CppString getValueName();
-
- /** Returns the call as binary xml string.
-   * The method call is converted to a wbxml sequence. It is prepended with
-   * the necessary xml procession instruction with version and encoding
-   * set to UTF-8.
-   * @return  The wbxml content
-   */
-   virtual std::string getWbXml() const;
+   static std::string getValueName();
 
  /** Returns the value as xml string.
    * The content and its type name is converted to an xml text.
@@ -1001,13 +935,13 @@ class ULXR_API_DECL0 Struct : public ValueBase
    * @param  indent   current indentation level
    * @return  The xml content
    */
-   virtual CppString getXml(int indent = 0) const;
+   virtual std::string getXml(int indent = 0) const;
 
   /** Returns the value as C++ structure declaration.
    * @param  name the declaration name
    * @return  The C++ source
    */
-   CppString  dump_C_decl(const char *name) const;
+   std::string  dump_C_decl(const char *name) const;
 
  /** Removes all elements of the Struct.
    */
@@ -1015,7 +949,7 @@ class ULXR_API_DECL0 Struct : public ValueBase
 
   protected:
 
-   typedef std::map<CppString, Value>  Members;
+   typedef std::map<std::string, Value>  Members;
 
  /** Returns all elements of the Struct.
    */
@@ -1023,7 +957,7 @@ class ULXR_API_DECL0 Struct : public ValueBase
 
  private:
 
-   typedef std::pair<CppString, Value> Member_pair;
+   typedef std::pair<std::string, Value> Member_pair;
 
    Members val;
 };
@@ -1033,7 +967,7 @@ class ULXR_API_DECL0 Struct : public ValueBase
   * This is used as temporary type when adding members to
   * Structs
   */
-class ULXR_API_DECL0 Struct::Member
+class  Struct::Member
 {
   public:
 
@@ -1041,12 +975,12 @@ class ULXR_API_DECL0 Struct::Member
     * @param  str    the name of the member
     * @param  val    the members Value
     */
-    Member(const CppString &str, const Value &val);
+    Member(const std::string &str, const Value &val);
 
   /** Returns the member name.
     * @return the name of the member
     */
-    const CppString &getName() const;
+    const std::string &getName() const;
 
   /** Returns the member value.
     * @return t    the members Value
@@ -1055,7 +989,7 @@ class ULXR_API_DECL0 Struct::Member
 
  private:
 
-   CppString  str;
+   std::string  str;
    Value      t;
 
 };
@@ -1063,15 +997,9 @@ class ULXR_API_DECL0 Struct::Member
 //////////////////////////////////////////////////////////////
 
 
-#ifdef ULXR_STRUCT_MEMBER_FROM_NAME_VALUE
-
-Struct::Member ULXR_API_DECL0 operator<< (const CppString &str, const Value &t);
-
-#endif
-
-Struct::Member ULXR_API_DECL0 make_member (const CppString &str, const Value &t);
-
-Struct ULXR_API_DECL0 & operator<< (Struct &st, const Struct::Member &k);
+Struct::Member  operator<< (const std::string &str, const Value &t);
+Struct::Member  make_member (const std::string &str, const Value &t);
+Struct  & operator<< (Struct &st, const Struct::Member &k);
 
 
 //////////////////////////////////////////////////////////////
@@ -1087,7 +1015,7 @@ Struct ULXR_API_DECL0 & operator<< (Struct &st, const Struct::Member &k);
   * @attention You must convert from your local encodings, for example with libiconv.
   * @ingroup grp_ulxr_value_type
   */
-class ULXR_API_DECL0 RpcString : public ValueBase
+class  RpcString : public ValueBase
 {
  public:
 
@@ -1095,77 +1023,26 @@ class ULXR_API_DECL0 RpcString : public ValueBase
    */
    RpcString ();
 
-#ifdef ULXR_UNICODE
-
- /** Constructs an RpcString.
-   * @param  s  value for the construction as Unicode string
-   */
-   RpcString (const Cpp16BitString &s);
-
-#endif
-
  /** Constructs an RpcString.
    * @param  s  value for the construction as UTF8 string
    */
-   RpcString (const Cpp8BitString &s);
+   RpcString (const std::string &s);
 
  /** Destroys the Value
    */
    virtual ~RpcString ();
 
-#ifdef ULXR_UNICODE
-
- /** Sets a new content.
-   * @param  newval  the new content in Unicode
-   */
-   void setString(const Cpp16BitString &newval);
-
-#endif
 
  /** Sets a new content.
    * @param  newval  the new content in UTF8
    */
-   void setString(const Cpp8BitString &newval);
-
-#if (defined(HAVE_ICONV_H) || defined(HAVE_ICONV)) && !defined (ULXR_UNICODE)
-
- /** Sets a new content from a defined encoding.
-   * Useful in our case only for encodings in 8bit, otherwise
-   * Unicode is highly recommended.
-   *
-   * Available only if iconv is available on the system.
-   * See "man 3 iconv" for more on this.
-   * @param  newval    the new content as pointer to UTF8
-   * @param  encoding  name of the encoding
-   */
-   void setString(const Cpp8BitString &newval, const char *encoding);
-
- /** Returns the current value in the desired encoding.
-   * Useful in our case only for encodings in 8bit, otherwise
-   * Unicode is highly recommended.
-   *
-   * Available only if iconv is available on the system.
-   * See "man 3 iconv" for more on this.
-   * @param  encoding  name of the encoding
-   * @return current value
-   */
-   CppString getString (const char *encoding) const;
-
-#endif
+   void setString(const std::string &newval);
 
  /** Returns the current value encoded in UTF8.
    * @return current value
    */
-   CppString getString () const;
+   std::string getString () const;
 
-#ifdef ULXR_UNICODE
-
- /** Returns the current value as Unicode string.
-   * @return current value
-   */
-   Cpp16BitString getUnicodeString () const;
-
-#endif
 
  /** Creates a copy of the actual object.
    * @return pointer to the copy
@@ -1177,20 +1054,12 @@ class ULXR_API_DECL0 RpcString : public ValueBase
    * @param deep  if nested types exist, include them
    * @return  The signature
    */
-   virtual CppString getSignature(bool deep = false) const;
+   virtual std::string getSignature(bool deep = false) const;
 
  /** Returns the xml name of the Value.
    * @return value name
    */
-   static CppString getValueName();
-
- /** Returns the call as binary xml string.
-   * The method call is converted to a wbxml sequence. It is prepended with
-   * the necessary xml procession instruction with version and encoding
-   * set to UTF-8.
-   * @return  The wbxml content
-   */
-   virtual std::string getWbXml() const;
+   static std::string getValueName();
 
  /** Returns the value as xml string.
    * The content and its type name is converted to an xml text.
@@ -1199,11 +1068,11 @@ class ULXR_API_DECL0 RpcString : public ValueBase
    * @param  indent   current indentation level
    * @return  The xml content
    */
-   virtual CppString getXml(int indent = 0) const;
+   virtual std::string getXml(int indent = 0) const;
 
  private:
 
-   CppString val;
+   std::string val;
 };
 
 
@@ -1221,7 +1090,7 @@ class ULXR_API_DECL0 RpcString : public ValueBase
   *  @li \c 19980717T14:08:55.
   * @ingroup grp_ulxr_value_type
   */
-class ULXR_API_DECL0 DateTime : public ValueBase
+class  DateTime : public ValueBase
 {
  public:
 
@@ -1232,13 +1101,13 @@ class ULXR_API_DECL0 DateTime : public ValueBase
  /** Constructs a DateTime.
    * @param s value for the construction as string
    */
-   DateTime (const CppString &s);
+   DateTime (const std::string &s);
 
  /** Constructs a DateTime. Uses defaults from \c setDateTime as
    * as decribed in the example in the XMLRPC spec.
    * @param tm value for the construction as time value
    */
-   DateTime (const ulxr_time_t &tm);
+   DateTime (const time_t &tm);
 
  /** Destroys the Value
    */
@@ -1247,12 +1116,12 @@ class ULXR_API_DECL0 DateTime : public ValueBase
  /** Returns the current value.
    * @return current value
    */
-   CppString getDateTime () const;
+   std::string getDateTime () const;
 
  /** Sets a new content.
    * @param  newval  the new content
    */
-   void setDateTime(const CppString &newval);
+   void setDateTime(const std::string &newval);
 
  /** Sets a new content from a std::time_t. Since the XMLRPC spec says nothing
    * special about the format there is an option to add "-" and ":" to the date
@@ -1263,7 +1132,7 @@ class ULXR_API_DECL0 DateTime : public ValueBase
    * @param add_colon add the colons in the time part
    * @param tm value for the construction as time value
    */
-   void setDateTime (const ulxr_time_t &tm,
+   void setDateTime (const time_t &tm,
                      bool add_dash = false,
                      bool add_colon = true);
 
@@ -1277,20 +1146,12 @@ class ULXR_API_DECL0 DateTime : public ValueBase
    * @param deep  if nested types exist, include them
    * @return  The signature
    */
-   virtual CppString getSignature(bool deep = false) const;
+   virtual std::string getSignature(bool deep = false) const;
 
  /** Returns the xml name of the Value.
    * @return value name
    */
-   static CppString getValueName();
-
- /** Returns the call as binary xml string.
-   * The method call is converted to a wbxml sequence. It is prepended with
-   * the necessary xml procession instruction with version and encoding
-   * set to UTF-8.
-   * @return  The wbxml content
-   */
-   virtual std::string getWbXml() const;
+   static std::string getValueName();
 
  /** Returns the value as xml string.
    * The content and its type name is converted to an xml text.
@@ -1299,11 +1160,11 @@ class ULXR_API_DECL0 DateTime : public ValueBase
    * @param  indent   current indentation level
    * @return  The xml content
    */
-   virtual CppString getXml(int indent = 0) const;
+   virtual std::string getXml(int indent = 0) const;
 
  private:
 
-   CppString val;
+   std::string val;
 };
 
 
@@ -1317,7 +1178,7 @@ class ULXR_API_DECL0 DateTime : public ValueBase
   * and some punctuation characters.
   * @ingroup grp_ulxr_value_type
   */
-class ULXR_API_DECL0 Base64 : public ValueBase
+class  Base64 : public ValueBase
 {
  public:
 
@@ -1328,7 +1189,7 @@ class ULXR_API_DECL0 Base64 : public ValueBase
  /** Constructs a Base64.
    * @param s value for the construction as string
    */
-   Base64 (const CppString &s);
+   Base64 (const std::string &s);
 
  /** Destroys the Value
    */
@@ -1337,22 +1198,22 @@ class ULXR_API_DECL0 Base64 : public ValueBase
  /** Returns the current value.
    * @return current value
    */
-   CppString getString () const;
+   std::string getString () const;
 
  /** Returns the current value encoded in base64.
    * @return internal value
    */
-   CppString getBase64() const;
+   std::string getBase64() const;
 
  /** Sets the current value encoded in base64.
    * @param s already encode value.
    */
-   void setBase64(const CppString s);
+   void setBase64(const std::string s);
 
  /** Sets a new content.
    * @param  newval  the new content (UTF8 in non-unicode mode)
    */
-   void setString(const CppString &newval);
+   void setString(const std::string &newval);
 
  /** Creates a copy of the actual object.
    * @return pointer to the copy
@@ -1364,20 +1225,12 @@ class ULXR_API_DECL0 Base64 : public ValueBase
    * @param deep  if nested types exist, include them
    * @return  The signature
    */
-   virtual CppString getSignature(bool deep = false) const;
+   virtual std::string getSignature(bool deep = false) const;
 
  /** Returns the xml name of the Value.
    * @return value name
    */
-   static CppString getValueName();
-
- /** Returns the call as binary xml string.
-   * The method call is converted to a wbxml sequence. It is prepended with
-   * the necessary xml procession instruction with version and encoding
-   * set to UTF-8.
-   * @return  The wbxml content
-   */
-   virtual std::string getWbXml() const;
+   static std::string getValueName();
 
  /** Returns the value as xml string.
    * The content and its type name is converted to an xml text.
@@ -1386,11 +1239,11 @@ class ULXR_API_DECL0 Base64 : public ValueBase
    * @param  indent   current indentation level
    * @return  The xml content
    */
-   virtual CppString getXml(int indent = 0) const;
+   virtual std::string getXml(int indent = 0) const;
 
  private:
 
-   CppString val;
+   std::string val;
 };
 
 

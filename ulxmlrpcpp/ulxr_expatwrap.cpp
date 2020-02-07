@@ -5,7 +5,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: ulxr_expatwrap.cpp 1074 2007-08-27 16:46:55Z ewald-arnold $
+    $Id: ulxr_expatwrap.cpp 10939 2011-09-12 13:22:25Z korosteleva $
 
  ***************************************************************************/
 
@@ -28,16 +28,15 @@
  ***************************************************************************/
 
 
-#define ULXR_NEED_EXPORTS
-#include <ulxmlrpcpp/ulxmlrpcpp.h>  // always first header
 
+#include <ulxmlrpcpp/ulxmlrpcpp.h>
 #include <ulxmlrpcpp/ulxr_expatwrap.h>
 
 
 namespace ulxr {
 
 
-ULXR_API_IMPL0 ExpatWrapper::ExpatWrapper(bool createParser)
+ ExpatWrapper::ExpatWrapper(bool createParser)
   : XmlParserBase()
 {
   if (createParser)
@@ -48,14 +47,14 @@ ULXR_API_IMPL0 ExpatWrapper::ExpatWrapper(bool createParser)
 }
 
 
-ULXR_API_IMPL0 ExpatWrapper::~ExpatWrapper()
+ ExpatWrapper::~ExpatWrapper()
 {
   if (expatParser)  // allows subclasses to avoid finishing parsing
     ::XML_ParserFree(expatParser);
 }
 
 
-ULXR_API_IMPL(void) ExpatWrapper::setHandler()
+void ExpatWrapper::setHandler()
 {
   ::XML_SetUserData(expatParser, this);
   ::XML_SetElementHandler(expatParser, startElementCallback, endElementCallback);
@@ -63,29 +62,29 @@ ULXR_API_IMPL(void) ExpatWrapper::setHandler()
 }
 
 
-ULXR_API_IMPL(void) ExpatWrapper::resetParser()
+void ExpatWrapper::resetParser()
 {
   ::XML_ParserReset(expatParser, 0);
   setHandler();
 }
 
 
-ULXR_API_IMPL(void) ExpatWrapper::startElement(const XML_Char*, const XML_Char**)
+void ExpatWrapper::startElement(const XML_Char*, const XML_Char**)
 {
 }
 
 
-ULXR_API_IMPL(void) ExpatWrapper::endElement(const XML_Char*)
+void ExpatWrapper::endElement(const XML_Char*)
 {
 }
 
 
-ULXR_API_IMPL(void) ExpatWrapper::charData(const XML_Char*, int )
+void ExpatWrapper::charData(const XML_Char*, int )
 {
 }
 
 
-ULXR_API_IMPL(int) ExpatWrapper::mapToFaultCode(int xpatcode) const
+int ExpatWrapper::mapToFaultCode(int xpatcode) const
 {
    int fc = NotWellformedError;
    // try to map error codes
@@ -108,7 +107,7 @@ ULXR_API_IMPL(int) ExpatWrapper::mapToFaultCode(int xpatcode) const
 }
 
 
-ULXR_API_IMPL(void)
+void
   ExpatWrapper::startElementCallback(void *userData,
                                      const XML_Char* name,
                                      const XML_Char** atts)
@@ -117,43 +116,39 @@ ULXR_API_IMPL(void)
 }
 
 
-ULXR_API_IMPL(void)
+void
   ExpatWrapper::endElementCallback(void *userData, const XML_Char* name)
 {
    ((ExpatWrapper*)userData)->endElement(name);
 }
 
 
-ULXR_API_IMPL(void)
+void
   ExpatWrapper::charDataCallback(void *userData, const XML_Char* s, int len)
 {
    ((ExpatWrapper*)userData)->charData(s, len);
 }
 
 
-ULXR_API_IMPL(int)  ExpatWrapper::parse(const char* buffer, int len, int isFinal)
+int  ExpatWrapper::parse(const char* buffer, int len, int isFinal)
 {
   return ::XML_Parse(expatParser, buffer, len, isFinal);
 }
 
 
-ULXR_API_IMPL(unsigned)  ExpatWrapper::getErrorCode() const
+unsigned  ExpatWrapper::getErrorCode() const
 {
   return ::XML_GetErrorCode(expatParser);
 }
 
 
-ULXR_API_IMPL(CppString)  ExpatWrapper::getErrorString(unsigned code) const
+std::string  ExpatWrapper::getErrorString(unsigned code) const
 {
-#ifdef ULXR_UNICODE
-  return ULXR_GET_STRING(XML_ErrorString((XML_Error) code));
-#else
   return XML_ErrorString((XML_Error) code);
-#endif
 }
 
 
-ULXR_API_IMPL(int)  ExpatWrapper::getCurrentLineNumber() const
+int  ExpatWrapper::getCurrentLineNumber() const
 {
   return ::XML_GetCurrentLineNumber(expatParser);
 }

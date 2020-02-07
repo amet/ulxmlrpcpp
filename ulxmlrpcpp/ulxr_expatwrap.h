@@ -5,7 +5,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: ulxr_expatwrap.h 1074 2007-08-27 16:46:55Z ewald-arnold $
+    $Id: ulxr_expatwrap.h 10942 2011-09-13 14:35:52Z korosteleva $
 
  ***************************************************************************/
 
@@ -30,7 +30,7 @@
 #ifndef ULXR_EXPATWRAP_H
 #define ULXR_EXPATWRAP_H
 
-#include <ulxmlrpcpp/ulxmlrpcpp.h>  // always first header
+#include <ulxmlrpcpp/ulxmlrpcpp.h>
 
 #include <ulxmlrpcpp/ulxr_xmlparse_base.h>
 
@@ -40,7 +40,7 @@ namespace ulxr {
 /** A wrapper for expat
   * @ingroup grp_ulxr_parser
   */
-class ULXR_API_DECL0 ExpatWrapper : public XmlParserBase
+class  ExpatWrapper : public XmlParserBase
 {
  public:
 
@@ -70,7 +70,7 @@ class ULXR_API_DECL0 ExpatWrapper : public XmlParserBase
     * @param code  error code
     * @return  pointer to description
     */
-    virtual CppString getErrorString(unsigned code) const;
+    virtual std::string getErrorString(unsigned code) const;
 
   /** Gets the line number in the xml data
     * @return  line number

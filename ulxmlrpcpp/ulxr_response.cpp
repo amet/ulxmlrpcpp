@@ -5,7 +5,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: ulxr_response.cpp 1026 2007-07-25 07:48:09Z ewald-arnold $
+    $Id: ulxr_response.cpp 10942 2011-09-13 14:35:52Z korosteleva $
 
  ***************************************************************************/
 
@@ -32,139 +32,112 @@
 //#define ULXR_SHOW_READ
 //#define ULXR_SHOW_WRITE
 
-#define ULXR_NEED_EXPORTS
-#include <ulxmlrpcpp/ulxmlrpcpp.h>  // always first header
+
+#include <ulxmlrpcpp/ulxmlrpcpp.h>
 
 #include <ulxmlrpcpp/ulxr_response.h>
-#include <ulxmlrpcpp/ulxr_responseparse_wb.h>
-#include <ulxmlrpcpp/ulxr_wbxmlparse.h>
 #include <ulxmlrpcpp/ulxr_value.h>
 
 
 namespace ulxr {
 
 
-ULXR_API_IMPL0 MethodResponse::MethodResponse()
+ MethodResponse::MethodResponse()
   : wasOk(true)
 {
 }
 
 
-ULXR_API_IMPL0 MethodResponse::MethodResponse (const Void & /*val*/)
+ MethodResponse::MethodResponse (const Void & /*val*/)
   : wasOk(true)
 {
 }
 
 
-ULXR_API_IMPL0 MethodResponse::MethodResponse(int fval, const CppString &fstr)
+ MethodResponse::MethodResponse(int fval, const std::string &fstr)
 
 {
   setFault(fval, fstr);
 }
 
 
-ULXR_API_IMPL0 MethodResponse::MethodResponse (const Value &val)
+ MethodResponse::MethodResponse (const Value &val)
 {
   setResult (val);
 }
 
 
-ULXR_API_IMPL0 MethodResponse::~MethodResponse()
+ MethodResponse::~MethodResponse()
 {
 }
 
 
-ULXR_API_IMPL(bool) MethodResponse::isOK() const
+bool MethodResponse::isOK() const
 {
   return wasOk;
 }
 
 
-ULXR_API_IMPL(void) MethodResponse::setFault(int fval, const CppString &fstr)
+void MethodResponse::setFault(int fval, const std::string &fstr)
 {
-  ULXR_TRACE(ULXR_PCHAR("setFault"));
+  ULXR_TRACE("setFault");
   wasOk = false;
   Struct st;
-  st.addMember(ULXR_PCHAR("faultCode"), Integer(fval));
-  st.addMember(ULXR_PCHAR("faultString"), RpcString(fstr));
+  st.addMember("faultCode", Integer(fval));
+  st.addMember("faultString", RpcString(fstr));
   respval = st;
 }
 
 
-ULXR_API_IMPL(void) MethodResponse::setResult (const Value &val)
+void MethodResponse::setResult (const Value &val)
 {
-  ULXR_TRACE(ULXR_PCHAR("setResult"));
+  ULXR_TRACE("setResult");
   wasOk = true;
   respval = val;
 }
 
 
-ULXR_API_IMPL(const Value&) MethodResponse::getResult() const
+const Value& MethodResponse::getResult() const
 {
   return respval;
 }
 
 
-ULXR_API_IMPL(CppString) MethodResponse::getSignature(bool deep) const
+std::string MethodResponse::getSignature(bool deep) const
 {
   return respval.getSignature(deep);
 }
 
 
-ULXR_API_IMPL(CppString) MethodResponse::getXml(int indent) const
+std::string MethodResponse::getXml(int indent) const
 {
-  CppString ind = getXmlIndent(indent);
-  CppString ind1 = getXmlIndent(indent+1);
-  CppString ind2 = getXmlIndent(indent+2);
-  CppString s = ULXR_PCHAR("<?xml version=\"1.0\" encoding=\"utf-8\"?>") + getXmlLinefeed();
-  s += ind + ULXR_PCHAR("<methodResponse>") + getXmlLinefeed();
+  std::string ind = getXmlIndent(indent);
+  std::string ind1 = getXmlIndent(indent+1);
+  std::string ind2 = getXmlIndent(indent+2);
+  std::string s = "<?xml version=\"1.0\" encoding=\"utf-8\"?>" + getXmlLinefeed();
+  s += ind + "<methodResponse>" + getXmlLinefeed();
   if (wasOk)
   {
-    s += ind1 + ULXR_PCHAR("<params>") + getXmlLinefeed();
+    s += ind1 + "<params>" + getXmlLinefeed();
     if (!respval.isVoid())
     {
-      s += ind2 + ULXR_PCHAR("<param>") + getXmlLinefeed();
+      s += ind2 + "<param>" + getXmlLinefeed();
       s += respval.getXml(indent+3) + getXmlLinefeed();
-      s += ind2 + ULXR_PCHAR("</param>") + getXmlLinefeed();
+      s += ind2 + "</param>" + getXmlLinefeed();
     }
-    s += ind1 + ULXR_PCHAR("</params>") + getXmlLinefeed();
+    s += ind1 + "</params>" + getXmlLinefeed();
   }
   else
   {
-    s += ind1 + ULXR_PCHAR("<fault>") + getXmlLinefeed();
+    s += ind1 + "<fault>" + getXmlLinefeed();
     s += respval.getXml(indent+2) +  getXmlLinefeed();
-    s += ind1 + ULXR_PCHAR("</fault>") + getXmlLinefeed();
+    s += ind1 + "</fault>" + getXmlLinefeed();
   }
-  s += ind + ULXR_PCHAR("</methodResponse>");
+  s += ind + "</methodResponse>";
   return s;
 }
 
 
-ULXR_API_IMPL(std::string) MethodResponse::getWbXml() const
-{
-  std::string s;
-  s.assign(WbXmlParser::wbxml_START_SEQ_STR, WbXmlParser::wbxml_START_SEQ_LEN);
-  s += MethodResponseParserWb::wbToken_MethodResponse;
-  if (wasOk)
-  {
-    s += MethodResponseParserWb::wbToken_Params;
-    if (!respval.isVoid())
-    {
-      s += MethodResponseParserWb::wbToken_Param;
-      s += respval.getWbXml();
-      s += WbXmlParser::wbxml_END;
-    }
-    s += WbXmlParser::wbxml_END;
-  }
-  else
-  {
-    s += MethodResponseParserWb::wbToken_Fault;
-    s += respval.getWbXml();
-    s += WbXmlParser::wbxml_END;
-  }
-  s += WbXmlParser::wbxml_END;
-  return s;
-}
 
 
 }  // namespace ulxr

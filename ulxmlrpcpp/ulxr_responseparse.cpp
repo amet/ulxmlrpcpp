@@ -5,7 +5,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: ulxr_responseparse.cpp 1152 2009-08-12 15:48:25Z ewald-arnold $
+    $Id: ulxr_responseparse.cpp 10942 2011-09-13 14:35:52Z korosteleva $
 
  ***************************************************************************/
 
@@ -30,8 +30,8 @@
 //#define ULXR_SHOW_TRACE
 //#define ULXR_DEBUG_OUTPUT
 
-#define ULXR_NEED_EXPORTS
-#include <ulxmlrpcpp/ulxmlrpcpp.h>  // always first header
+
+#include <ulxmlrpcpp/ulxmlrpcpp.h>
 
 #include <cstring>
 #include <memory>
@@ -43,7 +43,7 @@
 namespace ulxr {
 
 
-ULXR_API_IMPL(void)
+void
   MethodResponseParser::startElement(const XML_Char* name, const XML_Char** atts)
 {
   if (!testStartElement(name, atts))
@@ -51,12 +51,12 @@ ULXR_API_IMPL(void)
 }
 
 
-ULXR_API_IMPL(bool)
+bool
   MethodResponseParser::testStartElement(const XML_Char* name, const XML_Char** /*atts*/)
 {
-  ULXR_TRACE(ULXR_PCHAR("MethodResponseParser::testStartElement(const XML_Char*, const char**)")
-             << ULXR_PCHAR("\n  name: ")
-             << ULXR_GET_STRING(name)
+  ULXR_TRACE("MethodResponseParser::testStartElement(const XML_Char*, const char**)"
+             << "\n  name: "
+             << name
             );
 
   switch(states.top()->getParserState() )
@@ -111,19 +111,19 @@ ULXR_API_IMPL(bool)
 }
 
 
-ULXR_API_IMPL(void) MethodResponseParser::endElement(const XML_Char *name)
+void MethodResponseParser::endElement(const XML_Char *name)
 {
   if (!testEndElement(name))
     ValueParser::testEndElement(name);
 }
 
 
-ULXR_API_IMPL(bool) MethodResponseParser::testEndElement(const XML_Char *name)
+bool MethodResponseParser::testEndElement(const XML_Char *name)
 {
-  ULXR_TRACE(ULXR_PCHAR("MethodResponseParser::testEndElement(const XML_Char*)"));
+  ULXR_TRACE("MethodResponseParser::testEndElement(const XML_Char*)");
 
   if (states.size() <= 1)
-    throw RuntimeException(ApplicationError, ulxr_i18n(ULXR_PCHAR("abnormal program behaviour: MethodResponseParser::testEndElement() had no states left")));
+    throw RuntimeException(ApplicationError, "abnormal program behaviour: MethodResponseParser::testEndElement() had no states left");
 
   std::auto_ptr<ValueState> curr(getTopValueState());
   states.pop();

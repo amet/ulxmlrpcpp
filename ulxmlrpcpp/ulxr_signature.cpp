@@ -5,7 +5,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: ulxr_signature.cpp 940 2006-12-30 18:22:05Z ewald-arnold $
+    $Id: ulxr_signature.cpp 10942 2011-09-13 14:35:52Z korosteleva $
 
  ***************************************************************************/
 
@@ -28,8 +28,8 @@
  ***************************************************************************/
 
 
-#define ULXR_NEED_EXPORTS
-#include <ulxmlrpcpp/ulxmlrpcpp.h>  // always first header
+
+#include <ulxmlrpcpp/ulxmlrpcpp.h>
 
 #include <ulxmlrpcpp/ulxr_signature.h>
 #include <ulxmlrpcpp/ulxr_value.h>
@@ -37,60 +37,60 @@
 namespace ulxr {
 
 
-ULXR_API_IMPL0 Signature::Signature()
+ Signature::Signature()
 {
 }
 
 
-ULXR_API_IMPL0 Signature::Signature(const Void & /* v */)
+ Signature::Signature(const Void & /* v */)
 {
 }
 
 
-ULXR_API_IMPL0 Signature::Signature(const CppString &s)
+ Signature::Signature(const std::string &s)
 {
   sig = s;
 }
 
 
-ULXR_API_IMPL0 Signature::Signature(const ValueBase &v)
+ Signature::Signature(const ValueBase &v)
 {
   sig = v.getSignature();
 }
 
 
-ULXR_API_IMPL(Signature) & Signature::addParam(const Value &v)
+Signature & Signature::addParam(const Value &v)
 {
   if (sig.length() != 0)
-    sig += ULXR_PCHAR(",");
+    sig += ",";
   sig += v.getSignature();
   return *this;
 }
 
 
-ULXR_API_IMPL(Signature) & Signature::addParam(const CppString &s)
+Signature & Signature::addParam(const std::string &s)
 {
   if (sig.length() != 0)
-    sig += ULXR_PCHAR(",");
+    sig += ",";
   sig += s;
   return *this;
 }
 
 
-ULXR_API_IMPL(CppString) Signature::getString() const
+std::string Signature::getString() const
 {
   return sig;
 }
 
 
-ULXR_API_IMPL(Signature) & Signature::operator<<(const Value &v)
+Signature & Signature::operator<<(const Value &v)
 {
   addParam(v);
   return *this;
 }
 
 
-ULXR_API_IMPL(Signature) & Signature::operator<<(const CppString &s)
+Signature & Signature::operator<<(const std::string &s)
 {
   addParam(s);
   return *this;

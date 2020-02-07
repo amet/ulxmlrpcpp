@@ -5,7 +5,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: ulxr_http_protocol.h 1089 2007-11-10 10:40:43Z ewald-arnold $
+    $Id: ulxr_http_protocol.h 11073 2011-10-25 12:44:58Z korosteleva $
 
  ***************************************************************************/
 
@@ -30,11 +30,11 @@
 #ifndef ULXR_HTTP_PROTOCOL_H
 #define ULXR_HTTP_PROTOCOL_H
 
-#include <ulxmlrpcpp/ulxmlrpcpp.h>  // always first header
 
 #include <map>
 #include <vector>
 
+#include <ulxmlrpcpp/ulxmlrpcpp.h>
 #include <ulxmlrpcpp/ulxr_protocol.h>
 
 
@@ -47,18 +47,18 @@ class ConnectorWrapperBase;
 /** Runs http as protocol for rpc transmition.
   * @ingroup grp_ulxr_protocol
   */
-class ULXR_API_DECL0 HttpProtocol : public Protocol
+class  HttpProtocol : public Protocol
 {
  public:
 
-   typedef std::map<CppString, CppString> header_property;
+   typedef std::map<std::string, std::string> header_property;
 
  /** Constructs a Protocol.
    * @param  conn      pointer to connection object
    * @param  hostname  name of host
    * @param  hostport  port of host
    */
-   HttpProtocol(Connection *conn, const CppString &hostname, unsigned hostport);
+   HttpProtocol(Connection *conn, const std::string &hostname, unsigned hostport);
 
  /** Constructs a Protocol.
    * @param  conn      pointer to connection object
@@ -73,20 +73,18 @@ class ULXR_API_DECL0 HttpProtocol : public Protocol
    * @param   phrase  return value describing the problem.
    * @return true  response is OK.
    */
-   virtual bool responseStatus(CppString &phrase) const;
+   virtual bool isResponseStatus200(std::string &phrase) const;
 
  /** Sends a MethodCall over the connection.
    * @param   call      pointer to the calling data
    * @param   resource  resource for rpc on remote host
-   * @param   wbxml     true: data is sent as wbxml
    */
-   virtual void sendRpcCall(const MethodCall &call, const CppString &resource, bool wbxml);
+   virtual void sendRpcCall(const MethodCall &call, const std::string &resource);
 
  /** Sends a MethodResponse over the connection.
    * @param   resp   pointer to the response data
-   * @param   wbxml  true: data is sent as wbxml
    */
-   virtual void sendRpcResponse(const MethodResponse &resp, bool wbxml);
+   virtual void sendRpcResponse(const MethodResponse &resp);
 
  /** Resets the state of the Protocol.
    * Before starting a transfer you should call this to ensure
@@ -109,32 +107,16 @@ class ULXR_API_DECL0 HttpProtocol : public Protocol
    */
    virtual State connectionMachine(char * &buffer, long &len);
 
- /** Sets the current transmission to expect/accept no return value.
-   */
-   virtual void setTransmitOnly();
-
- /** Tests if the current transmission expects a return value.
-   * @return true: return value for request
-   */
-   virtual bool isTransmitOnly();
 
   /** Returns the protocol name.
    * @return protocol name
    */
-   virtual CppString getProtocolName();
+   virtual std::string getProtocolName();
 
  /** Tests if there are bytes left in the message body.
    * @return true: there is at least one byte available
    */
    virtual bool hasBytesToRead() const;
-
- /** Determines what to do after completing the current transaction.
-   * Depending on the protocol version and some properties the connection
-   * remains open or closes.
-   * @param  http_ver   numeral part of the version from the http header
-   * @return true: close connection afterwards
-   */
-   virtual bool determineClosing(const CppString &http_ver);
 
  //////////////////////////////////////////////////////////////////////////////////
  /// http stuff
@@ -144,8 +126,8 @@ class ULXR_API_DECL0 HttpProtocol : public Protocol
    * @param  phrase  human readable description
    * @param  info    additionaly info to appear in the html response part
    */
-   void sendNegativeResponse(int status, const CppString &phrase,
-                             const CppString &info = ULXR_PCHAR(""));
+   void sendNegativeResponse(int status, const std::string &phrase,
+                             const std::string &info = "");
 
  /** Sends a http request header.
    * The actual data must follow directly afterwards.
@@ -153,12 +135,10 @@ class ULXR_API_DECL0 HttpProtocol : public Protocol
    * @param  resource   the requested resource
    * @param  type       the content-type of the requesting data
    * @param  len        the length of the data in the requesting body
-   * @param  wbxml_mode true: suppress some header fields
    */
-   void sendRequestHeader(const CppString &method,
-                          const CppString &resource,
-                          const CppString &type, unsigned long len,
-                          bool wbxml_mode = false);
+   void sendRequestHeader(const std::string &method,
+                          const std::string &resource,
+                          const std::string &type, unsigned long len);
 
  /** Sends a http response header.
    * The actual data must follow directly afterwards.
@@ -166,31 +146,29 @@ class ULXR_API_DECL0 HttpProtocol : public Protocol
    * @param  phrase     human readable http status phrase
    * @param  type       the content-type of the requesting data
    * @param  len        the length of the data in the requesting body
-   * @param  wbxml_mode true: suppress some header fields
    */
    void sendResponseHeader(int code,
-                           const CppString &phrase,
-                           const CppString &type,
-                           unsigned long len,
-                           bool wbxml_mode = false);
+                           const std::string &phrase,
+                           const std::string &type,
+                           unsigned long len);
 
  /** Gets the user agent.
    * The user agent describes the client application.
    * @return  the user agent.
    */
-   CppString getUserAgent() const;
+   std::string getUserAgent() const;
 
  /** Sets the user agent.
    * The user agent describes the client application.
    * @param  ua  the user agent.
    */
-   void setUserAgent(const CppString &ua);
+   void setUserAgent(const std::string &ua);
 
  /** Sends a negative response to the caller
    * @param  realm   Description for the caller which username and password to use
    * @return true: access shall be granted.
    */
-   virtual void rejectAuthentication(const CppString &realm);
+   virtual void rejectAuthentication(const std::string &realm);
 
  /** Sets username and password for the next transmission (client mode).
    * This makes the next transmission block use a simple authentication scheme
@@ -198,7 +176,7 @@ class ULXR_API_DECL0 HttpProtocol : public Protocol
    * @param  user   Username
    * @param  pass   Password
    */
-   virtual void setMessageAuthentication(const CppString &user, const CppString &pass);
+   virtual void setMessageAuthentication(const std::string &user, const std::string &pass);
 
  /** Sets proxy username and password for all the following transmission (client mode).
    * This makes the transmissions use a simple authentication scheme
@@ -206,7 +184,7 @@ class ULXR_API_DECL0 HttpProtocol : public Protocol
    * @param  user   Username
    * @param  pass   Password
    */
-   virtual void setProxyAuthentication(const CppString &user, const CppString &pass);
+   virtual void setProxyAuthentication(const std::string &user, const std::string &pass);
 
  /** Gets a property field from the http header.
    * The names are case insensitive. If the property is not available
@@ -214,37 +192,26 @@ class ULXR_API_DECL0 HttpProtocol : public Protocol
    * @param   name   the name of the field
    * @return  the content of the field.
    */
-   CppString getHttpProperty (const CppString &name) const;
+   std::string getHttpProperty (const std::string &name) const;
 
  /** Tests if a property field from the http header is available.
    * The names are case insensitive.
    * @param   name   the name of the field
    * @return  true if the property field is available
    */
-   bool hasHttpProperty (const CppString &name) const;
+   bool hasHttpProperty (const std::string &name) const;
 
  /** Gets the current date as valid string for a http header.
    * @return  date as string
    */
-   static CppString getDateStr();
+   static std::string getDateStr();
 
  /** Gets the first line from the http header.
    * the forst line contains special information depending on the
    * direction from or to the server.
    * @return  date as string
    */
-   CppString getFirstHeaderLine() const;
-
- /** Returns a cloned HttpProtocol
-   * @return pointer to the cloned object
-   */
-   virtual HttpProtocol *clone() const;
-
- /** Detaches the protocol by creating a duplicate of
-   * the protocol + connection and closing the original connection afterwards.
-   * @return the current protocol
-   */
-   virtual Protocol *detach();
+   std::string getFirstHeaderLine() const;
 
  /** Clears the current cookie set.
    */
@@ -259,23 +226,23 @@ class ULXR_API_DECL0 HttpProtocol : public Protocol
    * The set comes from both header line "Cookie:" and "Set-Cookie:".
    * @param cont  cookie line from http header
    */
-   void setCookie(const CppString &cont);
+   void setCookie(const std::string &cont);
 
  /** Gets the current cookie set
    * @return single cookie line suitable for a http header
    */
-   CppString getCookie() const;
+   std::string getCookie() const;
 
  /** Sets the current cookie set for a server connection.
    * Adds a "Set-Cookie:" line into the response header.
    * @param cookie  cookie line suitable for http header
    */
-   void setServerCookie(const CppString &cookie);
+   void setServerCookie(const std::string &cookie);
 
  /** Gets the current cookie set for a server connection
    * @return cookie line suitable for http header
    */
-   CppString getServerCookie() const;
+   std::string getServerCookie() const;
 
  /** Checks if a cookie for the server connection is set.
    * @return cookie is set
@@ -286,12 +253,12 @@ class ULXR_API_DECL0 HttpProtocol : public Protocol
    * Adds a "Cookie:" line into the response header.
    * @param cookie  cookie line suitable for http header
    */
-   void setClientCookie(const CppString &cookie);
+   void setClientCookie(const std::string &cookie);
 
  /** Gets the current cookie set for a client connection
    * @return cookie line suitable for http header
    */
-   CppString getClientCookie() const;
+   std::string getClientCookie() const;
 
  /** Checks if a cookie for the client connection is set.
    * @return cookie is set
@@ -308,16 +275,10 @@ class ULXR_API_DECL0 HttpProtocol : public Protocol
    */
    bool isAcceptCookies() const;
 
- /** Shuts down the socket.
-   * @param mode  shutdown mode
-   *              @li Unix:  SHUT_RD, SHUT_WR or SHUT_RDWR
-   *              @li Win32: SD_RECEIVE, SD_SEND or SD_BOTH
-   */
-   virtual void shutdown(int mode);
-
+ 
  /** Closes the connection.
    */
-   virtual void close();
+   virtual void closeConnection();
 
  /** Enables the connection via a proxy with CONNECT method
    * @param  enable  true: enable CONNECT method
@@ -343,7 +304,7 @@ class ULXR_API_DECL0 HttpProtocol : public Protocol
    * @param   head_status   [OUT]  http response status
    * @param   head_phrase   [OUT]  an explanation phrase
    */
-   void splitHeaderLine(CppString &head_version, unsigned &head_status, CppString &head_phrase);
+   void splitResponseHeaderLine(std::string &head_version, unsigned &head_status, std::string &head_phrase);
 
  /** Writes the body to the data stream. The current encoding is honoured.
    * @param data    pointer to the data
@@ -351,34 +312,7 @@ class ULXR_API_DECL0 HttpProtocol : public Protocol
    */
    void writeBody(const char *data, unsigned long len);
 
- /** Writes a chunk to the data stream. The chunk size must be != 0.
-   * @param data    pointer to the data
-   * @param len     length of the data
-   */
-   void writeChunk(const char *data, unsigned long len);
-
- /** Sets the chunk size for chunked encoding.
-   * @param chunked   false == no chunked transfer
-   */
-   void setChunkedTransfer(bool chunked);
-
- /** Gets the chunk size for chunked encoding.
-   * @return maximum false == no chunked transfer
-   */
-   bool isChunkedTransfer() const;
-
 protected:
-
- /** Http connection states while reading input stream
-   */
-   typedef enum
-   {
-     ConnChunkHeader = Protocol::ConnLast,   // 7 chunk header of a chunked transfer
-     ConnChunkBody,                          // 8 data chunk of a chunked transfer
-     ConnChunkBodySkip,                      // 9 skip CRLF after chunk body
-     ConnChunkTerminated                     // 10 all chunks and footer received
-   }
-   HttpState;
 
  /** Tries to connect to the outside server via a proxy with http CONNECT
    */
@@ -387,12 +321,6 @@ protected:
  /** Waits for the proxy response about the result of the CONNECT
    */
    void awaitConnect();
-
- /** Checks if the current http has contains some closing property.
-   * This recognises "Connection: Close" as well as "Proxy-Connection: Close".
-   * @return true: Closing property is included
-   */
-   bool hasClosingProperty();
 
  /** Reset all information contained in the http header.
    */
@@ -403,14 +331,14 @@ protected:
    * @param  pass   reference to return password
    * @return true: username and password could be extracted
    */
-   virtual bool getUserPass(CppString &user, CppString &pass) const;
+   virtual bool getUserPass(std::string &user, std::string &pass) const;
 
  /** Adds a http header field for the next transmission.
    * The user fields are reset after transmission.
    * @param name     http header field name
    * @param value    value of header field
    */
-   void addOneTimeHttpField(const CppString &name, const CppString &value);
+   void addOneTimeHttpField(const std::string &name, const std::string &value);
 
  /** Determines the length of the message body.
    */
@@ -435,13 +363,8 @@ protected:
  /** Statemachine switches to body.
    * @param  buffer       pointer to input data
    * @param len           valid length of buffer
-   * @param  chunk_start  pointer to start of chunk data
-   * @param  chunk_cursor pointer to current chunk data
    */
-   void machine_switchToBody(char * &buffer,
-                             long &len,
-                             char * &chunk_start,
-                             char * &chunk_cursor);
+   void machine_switchToBody(char * &buffer, long &len);
 
  protected:
    HttpProtocol(const HttpProtocol&);

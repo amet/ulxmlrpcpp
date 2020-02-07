@@ -5,7 +5,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: ulxr_responseparse_base.cpp 940 2006-12-30 18:22:05Z ewald-arnold $
+    $Id: ulxr_responseparse_base.cpp 10942 2011-09-13 14:35:52Z korosteleva $
 
  ***************************************************************************/
 
@@ -27,31 +27,30 @@
  *
  ***************************************************************************/
 
-#define ULXR_NEED_EXPORTS
-#include <ulxmlrpcpp/ulxmlrpcpp.h>  // always first header
 
+#include <ulxmlrpcpp/ulxmlrpcpp.h>
 #include <ulxmlrpcpp/ulxr_responseparse_base.h>
 
 
 namespace ulxr {
 
 
-ULXR_API_IMPL0 MethodResponseParserBase::~MethodResponseParserBase()
+ MethodResponseParserBase::~MethodResponseParserBase()
 {
 }
 
 
-ULXR_API_IMPL(MethodResponse) MethodResponseParserBase::getMethodResponse()
+MethodResponse MethodResponseParserBase::getMethodResponse()
 {
   if (method_value.isStruct() )
   {
      Struct st = method_value;
      if (   st.size() == 2
-         && st.hasMember(ULXR_PCHAR("faultCode"))
-         && st.hasMember(ULXR_PCHAR("faultString")) )
+         && st.hasMember("faultCode")
+         && st.hasMember("faultString") )
      {
-       Integer iv = st.getMember(ULXR_PCHAR("faultCode"));
-       RpcString sv = st.getMember(ULXR_PCHAR("faultString"));
+       Integer iv = st.getMember("faultCode");
+       RpcString sv = st.getMember("faultString");
        return MethodResponse(iv.getInteger(), sv.getString());
      }
     else

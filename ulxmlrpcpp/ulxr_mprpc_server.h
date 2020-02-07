@@ -1,11 +1,11 @@
 /***************************************************************************
-           ulxr-method_adder.h  -  interface for adding methods
+             mprocess_rpc_server.h  -  multi process rpc server
                              -------------------
-    begin                : Thu Jul 12 2007
-    copyright            : (C) 2002-2007 by Ewald Arnold
-    email                : ulxmlrpcpp@ewald-arnold.de
+    begin                : Sun May 29 2005
+    copyright            : (C) 2005 Dmitry Nizovtsev <funt@alarit.com>
+                                    Olexander Shtepa <isk@alarit.com>
 
-    $Id: ulxr_method_adder.h 10942 2011-09-13 14:35:52Z korosteleva $
+    $Id: ulxr_mprpc_server.h 11073 2011-10-25 12:44:58Z korosteleva $
 
  ***************************************************************************/
 
@@ -27,107 +27,83 @@
  *
  ***************************************************************************/
 
-#ifndef ULXR_METHOD_ADDER_H
-#define ULXR_METHOD_ADDER_H
+
+#ifndef ULXR_MPRPC_SERVER_H
+#define ULXR_MPRPC_SERVER_H
+
 
 #include <ulxmlrpcpp/ulxmlrpcpp.h>
+#include <ulxmlrpcpp/ulxr_dispatcher.h>
+#include <ulxmlrpcpp/ulxr_tcpip_connection.h>
+
+#include <vector>
+#include <memory>
+
+
 
 namespace ulxr {
 
 
-class MethodResponse;
-class MethodCall;
-class Dispatcher;
-class Signature;
-
-
-namespace hidden {
-
-
-/** Internal helper class, not intended for public use.
- */
-class  MethodWrapperBase
+class  MultiProcessRpcServerError : public std::exception
 {
-  public:
-
-    virtual ~MethodWrapperBase();
-
-    virtual MethodResponse call(const MethodCall &calldata) const = 0;
+	std::string _what;
+public:
+	MultiProcessRpcServerError(const std::string& what_arg);
+	~MultiProcessRpcServerError() throw();
+	const char* what () const throw();
 };
 
-
-/** Internal helper class template, not intended for public use.
- */
-template <class T>
-class MethodWrapper : public MethodWrapperBase
-{
-  public:
-
-   typedef MethodResponse (T::*PMF)(const MethodCall &calldata);
-
-   virtual ~MethodWrapper()
-   {
-   }
-
-   virtual MethodResponse call (const MethodCall &calldata) const
-   {
-      return (obj->*adr) (calldata);
-   }
-
-   MethodWrapper(T *o, PMF a)
-    : obj(o), adr(a)
-     {}
-
-  private:
-   T    *obj;
-   PMF   adr ;
-
- private:
-    // forbid them all due to internal pointers
-    const MethodWrapper& operator= (const MethodWrapper&);
-    MethodWrapper (const MethodWrapper&);
-};
-
-
-}  // namespace hidden
-
-
-/** Define interface for adding rpc method to a dispatcher
-  * @ingroup grp_ulxr_rpc
+ /**
+  *  @brief multi process handler for RPC requests.
   */
-class  MethodAdder
+
+class  MultiProcessRpcServer
 {
-  public:
+public:
 
-    typedef MethodResponse (*StaticMethodCall_t)(const MethodCall &);
+  /**
+    * @brief Constructs rpc server with process-based request handling
+   	*
+    * @param poProtocol 	Protocol object
+    * @param aNumProcesses   number of processes
+	*
+    */
+    MultiProcessRpcServer(ulxr::Protocol* poProtocol, size_t aNumProcesses);
 
-    typedef MethodResponse (*SystemMethodCall_t)(const MethodCall &,
-                                                 const Dispatcher* disp);
 
-    typedef hidden::MethodWrapperBase*  DynamicMethodCall_t;    // call Wrappers call();
+  /** @brief Destructs the rpc server.
+   *
+   *  Destructs the rpc server.
+   *  All handlers will be forced to stop
+   *
+   */
+	virtual ~MultiProcessRpcServer();
+	
+    /**
+      Start serving. 
+      After the function returns the protocol's connection is not usable for serving any more. 
+    */
+    virtual void start();
+    
+    virtual void terminateAllHandlers();
+    // @normally should never return unless the signal is sent
+	virtual void waitForAllHandlersFinish();       
 
-    enum   CallType { CallNone,
-                      CallSystem,
-                      CallStatic,
-                      CallDynamic
-                    };
+  	std::vector<pid_t> getHandlers() const;
+	
+ /** Processes a call after it has been recieved and before it is dispatched.
+   * @param  aCall   last received call
+   * @param  aConnectionProtocol   current connection   
+   */
+   virtual void preProcessCall(MethodCall & aCall, const Protocol *aConnectionProtocol = NULL);
 
-  protected:
+ /** Processes a method response before it is sent back.
+   * @param  resp   response to send back
+   */
+   virtual void preProcessResponse(MethodResponse &resp);	
 
-    friend StaticMethodCall_t make_method(const StaticMethodCall_t);
-
-    typedef union
-    {
-       StaticMethodCall_t    static_function;
-       SystemMethodCall_t    system_function;
-       DynamicMethodCall_t   dynamic_function;
-    } MethodCall_t;
-
-  public:
-
-    virtual ~MethodAdder()
-    {}
-
+	
+	
  /** Adds a user defined (static) method to the dispatcher.
    * You access a remote method by sending the "official" name. Sometimes
    * a method accepts different parameter sets (overloading in C++).
@@ -139,11 +115,11 @@ class  MethodAdder
    * @param  signature      the signature of the parameters
    * @param  help           short usage description
    */
-   virtual void addMethod (StaticMethodCall_t adr,
+   void addMethod (MethodAdder::StaticMethodCall_t adr,
                    const std::string &ret_signature,
                    const std::string &name,
                    const std::string &signature,
-                   const std::string &help = "") = 0;
+                   const std::string &help = "");
 
  /** Adds a user defined (dynamic) method to the dispatcher.
    * You access a remote method by sending the "official" name. Sometimes
@@ -157,11 +133,11 @@ class  MethodAdder
    * @param  signature      the signature of the parameters
    * @param  help           short usage description
    */
-   virtual void addMethod (DynamicMethodCall_t wrapper,
+   void addMethod (MethodAdder::DynamicMethodCall_t wrapper,
                    const std::string &ret_signature,
                    const std::string &name,
                    const std::string &signature,
-                   const std::string &help = "") = 0;
+                   const std::string &help = "");
 
  /** Adds a system internal method to the dispatcher.
    * You access a remote method by sending the "official" name. Sometimes
@@ -174,11 +150,11 @@ class  MethodAdder
    * @param  signature      the signature of the parameters
    * @param  help           short usage description
    */
-   virtual void addMethod (SystemMethodCall_t adr,
+   void addMethod (MethodAdder::SystemMethodCall_t adr,
                    const std::string &ret_signature,
                    const std::string &name,
                    const std::string &signature,
-                   const std::string &help = "") = 0;
+                   const std::string &help = "");
 
  /** Adds a user defined (static) method to the dispatcher.
    * You access a remote method by sending the "official" name. Sometimes
@@ -191,11 +167,11 @@ class  MethodAdder
    * @param  signature      the signature of the parameters
    * @param  help           short usage description
    */
-   virtual void addMethod (StaticMethodCall_t adr,
+   void addMethod (MethodAdder::StaticMethodCall_t adr,
                    const Signature &ret_signature,
                    const std::string &name,
                    const Signature &signature,
-                   const std::string &help = "") = 0;
+                   const std::string &help = "");
 
  /** Adds a user defined (dynamic) method to the dispatcher.
    * You access a remote method by sending the "official" name. Sometimes
@@ -209,11 +185,11 @@ class  MethodAdder
    * @param  signature      the signature of the parameters
    * @param  help           short usage description
    */
-   virtual void addMethod (DynamicMethodCall_t wrapper,
+   void addMethod (MethodAdder::DynamicMethodCall_t wrapper,
                    const Signature &ret_signature,
                    const std::string &name,
                    const Signature &signature,
-                   const std::string &help = "") = 0;
+                   const std::string &help = "");
 
  /** Adds a system internal method to the dispatcher.
    * You access a remote method by sending the "official" name. Sometimes
@@ -226,47 +202,30 @@ class  MethodAdder
    * @param  signature      the signature of the parameters
    * @param  help           short usage description
    */
-   virtual void addMethod (SystemMethodCall_t adr,
+   void addMethod (MethodAdder::SystemMethodCall_t adr,
                    const Signature &ret_signature,
                    const std::string &name,
                    const Signature &signature,
-                   const std::string &help = "") = 0;
+                   const std::string &help = "");
 
  /** Removes a method if available
    * @param name   method name
    */
-   virtual void removeMethod(const std::string &name) = 0;
+   void removeMethod(const std::string &name);
+ private:
+   MultiProcessRpcServer(const MultiProcessRpcServer&);
+   MultiProcessRpcServer& operator=(const MultiProcessRpcServer&);
+   
+   void startChildLoop();
+
+private:
+	ulxr::Dispatcher*	    theDispatcher;
+	const size_t            theNumProcesses;
+	std::vector<pid_t>	    theProcessPool;	
 };
 
 
-/** Creates a wrapper object to a method of a worker class.
-  * new ulxr::hidden::MethodWrapper<classname> (&obj, &classname::method),
-  * @param w     reference to worker class
-  * @param pmf   adress of member function in worker class
-  * @return pointer to wrapper object
-  */
-
-template <class T>
-inline hidden::MethodWrapperBase*
-make_method(T &w, typename hidden::MethodWrapper<T>::PMF pmf)
-{
-  return new hidden::MethodWrapper<T> (&w, pmf);
 }
 
 
-typedef MethodAdder::StaticMethodCall_t MethodAdder_StaticMethodCall_t;
-
-/** Specialisation of template to achive uniform look in responder creation.
-  * @param ptr   pointer to worker function
-  * @return pointer to the function
-  */
-inline MethodAdder_StaticMethodCall_t
-make_method(MethodAdder_StaticMethodCall_t ptr)
-{
-  return ptr;
-}
-
-
-} // namespace
-
-#endif // ULXR_METHOD_ADDER_H
+#endif // ULXR_MPRPC_SERVER_H
