@@ -310,7 +310,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 INCLUDES = -I. -I $(top_srcdir)  $(all_includes) $(EA_EXTRA_INC)
-SUBDIRS = . contrib docs tests po apps httpd
+SUBDIRS = . contrib docs tests po httpd
 AM_CXXFLAGS = -DULXR_DATADIR=\"$(datadir)\" -DULXR_HAVE_CONFIG_H
 lib_LTLIBRARIES = libulxmlrpcpp.la
 libulxmlrpcpp_la_LDFLAGS = -no-undefined \

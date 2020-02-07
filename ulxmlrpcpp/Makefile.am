@@ -1,6 +1,6 @@
 INCLUDES = -I. -I $(top_srcdir)  $(all_includes) $(EA_EXTRA_INC)
 
-SUBDIRS = . contrib docs tests po apps httpd
+SUBDIRS = . contrib docs tests po httpd
 
 AM_CXXFLAGS = -DULXR_DATADIR=\"$(datadir)\" -DULXR_HAVE_CONFIG_H
 
