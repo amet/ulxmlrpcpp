@@ -1,4 +1,4 @@
-SUBDIRS = ulxmlrpcpp bcb5 bcb6 msvc msvc71 expat stubber rpm config
+SUBDIRS = ulxmlrpcpp bcb5 bcb6 msvc msvc71 expat config
 
 LIBTOOL_DEPS = @LIBTOOL_DEPS@
 libtool : $(LIBTOOL_DEPS)
