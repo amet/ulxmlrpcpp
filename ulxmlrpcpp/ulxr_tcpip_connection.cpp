@@ -422,7 +422,8 @@ ULXR_API_IMPL(struct hostent *)
   unsigned start = 0;
   if (dom.substr(start, 5) == ULXR_PCHAR("http:"))
     start += 5;
-
+  if (dom.substr(start, 6) == ULXR_PCHAR("https:"))
+    start += 6;
   if (dom.substr(start, 2) == ULXR_PCHAR("//"))
     start += 2;
 
