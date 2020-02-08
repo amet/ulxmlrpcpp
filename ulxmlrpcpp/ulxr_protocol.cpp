@@ -5,7 +5,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: ulxr_protocol.cpp 11073 2011-10-25 12:44:58Z korosteleva $
+    $Id: ulxr_protocol.cpp 1062 2007-08-19 09:07:58Z ewald-arnold $
 
  ***************************************************************************/
 
@@ -27,13 +27,14 @@
  *
  ***************************************************************************/
 
-//#define ULXR_SHOW_TRACE
-//#define ULXR_DEBUG_OUTPUT
+// #define ULXR_SHOW_TRACE
+// #define ULXR_DEBUG_OUTPUT
 // #define ULXR_SHOW_READ
 // #define ULXR_SHOW_WRITE
 
+#define ULXR_NEED_EXPORTS
+#include <ulxmlrpcpp/ulxmlrpcpp.h>  // always first header
 
-#include <ulxmlrpcpp/ulxmlrpcpp.h>
 #include <ulxmlrpcpp/ulxr_connection.h>
 #include <ulxmlrpcpp/ulxr_protocol.h>
 #include <ulxmlrpcpp/ulxr_response.h>
@@ -45,15 +46,15 @@ namespace ulxr {
 
 struct Protocol::AuthData
 {
-  AuthData(const std::string &user_, const std::string &pass_, const std::string &realm_)
+  AuthData(const CppString &user_, const CppString &pass_, const CppString &realm_)
   : user(user_)
   , pass(pass_)
   , realm(realm_)
   {}
 
-  std::string  user;
-  std::string  pass;
-  std::string  realm;
+  CppString  user;
+  CppString  pass;
+  CppString  realm;
 };
 
 
@@ -64,254 +65,310 @@ struct Protocol::PImpl
    State           connstate;
    long            content_length;
    long            remain_content_length;
+   bool            persistent;
 
    std::vector<AuthData>  authdata;
 };
 
 
- Protocol::Protocol(const Protocol &prot)
+ULXR_API_IMPL0 Protocol::Protocol(const Protocol &prot)
   : pimpl (new PImpl)
 {
   *pimpl = *prot.pimpl;
 }
 
 
- Protocol::Protocol(Connection *conn)
+ULXR_API_IMPL0 Protocol::Protocol(Connection *conn)
   : pimpl (new PImpl)
 {
   pimpl->connection = conn;
   pimpl->delete_connection = false;
-  ULXR_TRACE("Protocol");
+  ULXR_TRACE(ULXR_PCHAR("Protocol"));
   init();
 }
 
 
- Protocol::~Protocol()
+ULXR_API_IMPL0 Protocol::~Protocol()
 {
-  ULXR_TRACE("~Protocol");
+  ULXR_TRACE(ULXR_PCHAR("~Protocol"));
   if (pimpl->delete_connection)
     delete pimpl->connection;
-  pimpl->connection = NULL;
+  pimpl->connection = 0;
   delete pimpl;
-  pimpl = NULL;
+  pimpl = 0;
 }
 
 
-void Protocol::init()
+ULXR_API_IMPL(void) Protocol::init()
 {
-  ULXR_TRACE("init");
+  ULXR_TRACE(ULXR_PCHAR("init"));
+  setPersistent(false);
   resetConnection();
 }
 
 
-void Protocol::writeRaw(char const *buff, long len)
+ULXR_API_IMPL(void) Protocol::writeRaw(char const *buff, long len)
 {
-  ULXR_TRACE("writeRaw");
+  ULXR_TRACE(ULXR_PCHAR("writeRaw"));
   getConnection()->write(buff, len);
 }
 
 
-long Protocol::readRaw(char *buff, long len)
+ULXR_API_IMPL(long) Protocol::readRaw(char *buff, long len)
 {
-  ULXR_TRACE("readRaw, want: " << len);
+  ULXR_TRACE(ULXR_PCHAR("readRaw, want: ") << len);
   if (pimpl->remain_content_length >= 0)
   {
-    ULXR_TRACE("read 0 " << len << " " << getRemainingContentLength());
+    ULXR_TRACE(ULXR_PCHAR("read 0 ") << len << ULXR_PCHAR(" ") << getRemainingContentLength());
     if (pimpl->remain_content_length < len)
       len = pimpl->remain_content_length;
   }
 
-  long myRead = getConnection()->read(buff, len);
+  long readed = getConnection()->read(buff, len);
 
   if (pimpl->remain_content_length >= 0)
-    pimpl->remain_content_length -= myRead;
+    pimpl->remain_content_length -= readed;
 
-  return myRead;
+  return readed;
 }
 
 
-void Protocol::open()
+ULXR_API_IMPL(void) Protocol::open()
 {
-  ULXR_TRACE("open");
+  ULXR_TRACE(ULXR_PCHAR("open"));
   getConnection()->open();
   resetConnection();
 }
 
 
-bool Protocol::isOpen() const
+ULXR_API_IMPL(bool) Protocol::isOpen() const
 {
   const Connection *conn = getConnection();
   bool op = conn != 0 && conn->isOpen();
-  ULXR_TRACE("isOpen " << op);
+  ULXR_TRACE(ULXR_PCHAR("isOpen ") << op);
   return op;
 }
 
 
-bool Protocol::accept(int _timeout)
+ULXR_API_IMPL(bool) Protocol::accept(int _timeout)
 {
-  ULXR_TRACE("accept");
+  ULXR_TRACE(ULXR_PCHAR("accept"));
   bool res = getConnection()->accept(_timeout);
   resetConnection();
   return res;
 }
 
 
-void Protocol::closeConnection()
+ULXR_API_IMPL(void) Protocol::close()
 {
-  ULXR_TRACE("closeConnection");
-  if (getConnection())
+  ULXR_TRACE(ULXR_PCHAR("close"));
+  if (getConnection() != 0)
     getConnection()->close();
 //  resetConnection();
 }
 
-void Protocol::stopServing()
+
+ULXR_API_IMPL(Connection *) Protocol::getConnection() const
 {
-  ULXR_TRACE("stopServing");
-  if (getConnection())
-    getConnection()->stopServing();
-}
-
-
-
-Connection* Protocol::getConnection() const
-{
-  ULXR_TRACE("getConnection");
+  ULXR_TRACE(ULXR_PCHAR("getConnection"));
   return pimpl->connection;
 }
 
 
-void Protocol::setConnection(Connection *conn)
+ULXR_API_IMPL(void) Protocol::setConnection(Connection *conn)
 {
-  ULXR_TRACE("getConnection");
+  ULXR_TRACE(ULXR_PCHAR("getConnection"));
   pimpl->connection = conn;
   pimpl->delete_connection = true;
-  ULXR_TRACE("/getConnection");
+  ULXR_TRACE(ULXR_PCHAR("/getConnection"));
 }
 
 
-Protocol::State Protocol::getConnectionState() const
+ULXR_API_IMPL(Protocol::State) Protocol::getConnectionState() const
 {
   return pimpl->connstate;
 }
 
 
-void Protocol::setConnectionState(State state)
+ULXR_API_IMPL(void) Protocol::setConnectionState(State state)
 {
   pimpl->connstate = state;
 }
 
 
-void Protocol::setRemainingContentLength(long len)
+ULXR_API_IMPL(void) Protocol::setRemainingContentLength(long len)
 {
   pimpl->remain_content_length = len;
 }
 
 
-long Protocol::getRemainingContentLength() const
+ULXR_API_IMPL(long) Protocol::getRemainingContentLength() const
 {
   return pimpl->remain_content_length;
 }
 
 
-long Protocol::getContentLength() const
+ULXR_API_IMPL(long) Protocol::getContentLength() const
 {
   return pimpl->content_length;
 }
 
 
-void Protocol::setContentLength(long len)
+ULXR_API_IMPL(void) Protocol::setContentLength(long len)
 {
   pimpl->content_length = len;
 }
 
 
-Protocol::State Protocol::connectionMachine(char * &/*buffer*/, long &/*len*/)
+ULXR_API_IMPL(Protocol::State)
+  Protocol::connectionMachine(char * &/*buffer*/, long &/*len*/)
 {
-  ULXR_TRACE("connectionMachine");
+  ULXR_TRACE(ULXR_PCHAR("connectionMachine"));
   pimpl->connstate = ConnBody;
   return ConnBody;
 }
 
 
-void Protocol::sendRpcResponse(const MethodResponse &resp)
+ULXR_API_IMPL(void) Protocol::sendRpcResponse(const MethodResponse &resp, bool wbxml_mode)
 {
-    ULXR_TRACE("sendRpcResponse");
-    std::string xml = resp.getXml(0)+"\n";
+  ULXR_TRACE(ULXR_PCHAR("sendRpcResponse"));
+  if (wbxml_mode)
+  {
+    std::string xml = resp.getWbXml();
     getConnection()->write(xml.c_str(), xml.length());
+  }
+  else
+  {
+    CppString xml = resp.getXml(0)+ULXR_PCHAR("\n");
+
+#ifdef ULXR_UNICODE
+    Cpp8BitString utf = unicodeToUtf8(xml);
+    getConnection()->write(utf.c_str(), utf.length());
+#else
+    getConnection()->write(xml.c_str(), xml.length());
+#endif
+  }
 }
 
 
-void Protocol::sendRpcCall(const MethodCall &call,
-                                       const std::string &/*resource*/)
+ULXR_API_IMPL(void) Protocol::sendRpcCall(const MethodCall &call,
+                                       const CppString &/*resource*/,
+                                       bool wbxml_mode)
 {
-    ULXR_TRACE("sendRpcCall");
-    std::string xml = call.getXml(0)+"\n";
+  ULXR_TRACE(ULXR_PCHAR("sendRpcCall"));
+  if (wbxml_mode)
+  {
+    std::string xml = call.getWbXml();
     getConnection()->write(xml.c_str(), xml.length());
+  }
+  else
+  {
+    CppString xml = call.getXml(0)+ULXR_PCHAR("\n");
+#ifdef ULXR_UNICODE
+    Cpp8BitString utf = unicodeToUtf8(xml);
+    getConnection()->write(utf.c_str(), utf.length());
+#else
+    getConnection()->write(xml.c_str(), xml.length());
+#endif
+  }
 }
 
 
-void
-  Protocol::addAuthentication(const std::string &user,
-                              const std::string &pass,
-                              const std::string &realm)
+ULXR_API_IMPL(void)
+  Protocol::addAuthentication(const CppString &user,
+                              const CppString &pass,
+                              const CppString &realm)
 {
-  ULXR_TRACE("addAuthentication");
+  ULXR_TRACE(ULXR_PCHAR("addAuthentication"));
   pimpl->authdata.push_back(AuthData(stripWS(user), stripWS(pass), stripWS(realm)));
 }
 
 
-bool Protocol::checkAuthentication(const std::string &realm) const
+ULXR_API_IMPL(bool) Protocol::checkAuthentication(const CppString &realm) const
 {
-  ULXR_TRACE("checkAuthentication " << realm);
+  ULXR_TRACE(ULXR_PCHAR("checkAuthentication ") << realm);
   if (pimpl->authdata.size() == 0)
     return true;   // accept all
 
-  ULXR_TRACE("checkAuthentication 1");
-  std::string user, pass;
+  ULXR_TRACE(ULXR_PCHAR("checkAuthentication 1"));
+  CppString user, pass;
   if (!getUserPass(user, pass))
     return false;
 
-  ULXR_TRACE("checkAuthentication 2 "
-             << "user: " << user
-             << " pass: " << pass);
+  ULXR_TRACE(ULXR_PCHAR("checkAuthentication 2 ")
+             << ULXR_PCHAR("user: ") << user
+             << ULXR_PCHAR(" pass: ") << pass);
   for (unsigned i = 0; i < pimpl->authdata.size(); ++i)
     if (   pimpl->authdata[i].user == user
         && pimpl->authdata[i].pass == pass
         && pimpl->authdata[i].realm == realm)
       return true;
 
-  ULXR_TRACE("checkAuthentication 3");
+  ULXR_TRACE(ULXR_PCHAR("checkAuthentication 3"));
   return false;
 }
 
 
-bool Protocol::getUserPass(std::string & /* user */,
-                                       std::string & /* pass */) const
+ULXR_API_IMPL(bool) Protocol::getUserPass(CppString & /* user */,
+                                       CppString & /* pass */) const
 {
-  ULXR_TRACE("getUserPass");
+  ULXR_TRACE(ULXR_PCHAR("getUserPass"));
   return false;
 }
 
 
-void Protocol::rejectAuthentication(const std::string & /* realm */)
+ULXR_API_IMPL(void) Protocol::rejectAuthentication(const CppString & /* realm */)
 {
-  ULXR_TRACE("rejectAuthentication");
+  ULXR_TRACE(ULXR_PCHAR("rejectAuthentication"));
 }
 
 
-void Protocol::setMessageAuthentication(const std::string & /* user */,
-                                                    const std::string & /* pass */)
+ULXR_API_IMPL(void) Protocol::setMessageAuthentication(const CppString & /* user */,
+                                                    const CppString & /* pass */)
 {
-  ULXR_TRACE("setMessageAuthentication");
+  ULXR_TRACE(ULXR_PCHAR("setMessageAuthentication"));
 }
 
 
-void Protocol::resetConnection()
+ULXR_API_IMPL(void) Protocol::setTransmitOnly()
 {
-  ULXR_TRACE("resetConnection");
+  ULXR_TRACE(ULXR_PCHAR("setTransmitOnly"));
+}
+
+
+ULXR_API_IMPL(bool) Protocol::isTransmitOnly()
+{
+  ULXR_TRACE(ULXR_PCHAR("isTransmitOnly"));
+  return false; // always return a value
+}
+
+
+ULXR_API_IMPL(void) Protocol::resetConnection()
+{
+  ULXR_TRACE(ULXR_PCHAR("resetConnection"));
   pimpl->connstate = ConnStart;
   pimpl->remain_content_length = -1;
   pimpl->content_length = -1;
+//  getConnection()->setTimeout(getConnection()->getDefaultTimeout());
+}
+
+
+ULXR_API_IMPL(void) Protocol::setPersistent(bool pers)
+{
+  ULXR_TRACE(ULXR_PCHAR("setPersistent ") << pers);
+  pimpl->persistent = pers;
+
+  Connection *conn = getConnection();
+  if (pers)
+    conn->setTimeout(conn->getPersistentTimeout());
+  else
+    conn->setTimeout(conn->getDefaultTimeout());
+}
+
+
+ULXR_API_IMPL(bool) Protocol::isPersistent() const
+{
+  return pimpl->persistent;
 }
 
 

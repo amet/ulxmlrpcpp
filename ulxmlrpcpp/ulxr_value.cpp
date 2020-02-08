@@ -5,7 +5,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: ulxr_value.cpp 10942 2011-09-13 14:35:52Z korosteleva $
+    $Id: ulxr_value.cpp 1157 2009-08-29 09:02:31Z ewald-arnold $
 
  ***************************************************************************/
 
@@ -27,26 +27,45 @@
  *
  ***************************************************************************/
 
+// upon requst you may also use intrinsic types like bool, int, double, char*
+// which will automatically generate their xmlrpc counterparts.
+//
+// always compile, but #include just upon demand!
+//
+#define ULXR_USE_INTRINSIC_VALUE_TYPES
 
-#include <ulxmlrpcpp/ulxmlrpcpp.h>
+// upon requst you may also use the following construct
+//    ("second" << i2)
+//
+// always compile, but #include just upon demand!
+//
+#define ULXR_STRUCT_MEMBER_FROM_NAME_VALUE
+
+
+#define ULXR_NEED_EXPORTS
+#include <ulxmlrpcpp/ulxmlrpcpp.h>  // always first header
 
 #include <cstdio>
 #include <ctime>
 #include <vector>
-#include <iostream>
-#include <cstdlib>
 
 #include <ulxmlrpcpp/ulxr_value.h>
+#include <ulxmlrpcpp/ulxr_valueparse_wb.h>
 #include <ulxmlrpcpp/ulxr_except.h>
+#include <ulxmlrpcpp/ulxr_htmlform_handler.h>
+
+#ifndef ULXR_OMIT_REENTRANT_PROTECTOR
+#include <ulxmlrpcpp/ulxr_mutex.h>
+#endif
 
 
 #define ULXR_ASSERT_RPCTYPE(x) \
   if (x != getType() )    \
   { \
-    throw ParameterException(ApplicationError, (std::string) \
-                           "Value type mismatch.\n" \
-                           "Expected: " + #x + ".\n" \
-                           "Actually have: " +getTypeName() + "."); \
+    throw ParameterException(ApplicationError, (CppString) \
+                           ULXR_PCHAR("Value type mismatch.\n") \
+                           ULXR_PCHAR("Expected: ") + ULXR_GET_STRING(#x) + ULXR_PCHAR(".\n") \
+                           ULXR_PCHAR("Actually have: ") +getTypeName() + ULXR_PCHAR(".")); \
   }
 
 
@@ -57,316 +76,342 @@ namespace ulxr {
 //////////////////////////////////////////////////////
 
 
-bool Value::isVoid() const
+ULXR_API_IMPL(bool) Value::isVoid() const
 {
   return baseVal->isVoid();
 }
 
 
-bool Value::isBoolean() const
+ULXR_API_IMPL(bool) Value::isBoolean() const
 {
   return baseVal->isBoolean();
 }
 
 
-bool Value::isInteger() const
+ULXR_API_IMPL(bool) Value::isInteger() const
 {
   return baseVal->isInteger();
 }
 
 
-bool Value::isDouble()   const
+ULXR_API_IMPL(bool) Value::isDouble()   const
 {
   return baseVal->isDouble();
 }
 
 
-bool Value::isArray() const
+ULXR_API_IMPL(bool) Value::isArray() const
 {
   return baseVal->isArray();
 }
 
 
-bool Value::isStruct() const
+ULXR_API_IMPL(bool) Value::isStruct() const
 {
   return baseVal->isStruct();
 }
 
 
-bool Value::isString() const
+ULXR_API_IMPL(bool) Value::isString() const
 {
   return baseVal->isString();
 }
 
 
-bool Value::isBase64() const
+ULXR_API_IMPL(bool) Value::isBase64() const
 {
   return baseVal->isBase64();
 }
 
 
-bool Value::isDateTime() const
+ULXR_API_IMPL(bool) Value::isDateTime() const
 {
   return baseVal->isDateTime();
 }
 
 
-ValueType Value::getType() const
+ULXR_API_IMPL(ValueType) Value::getType() const
 {
   return baseVal->getType();
 }
 
 
-std::string Value::getTypeName() const
+ULXR_API_IMPL(CppString) Value::getTypeName() const
 {
   return baseVal->getTypeName();
 }
 
 
-std::string Value::getSignature(bool deep) const
+ULXR_API_IMPL(CppString) Value::getSignature(bool deep) const
 {
-  std::string s;
+  CppString s;
   if (baseVal != 0)
     s = baseVal->getSignature(deep);
   return s;
 }
 
 
-std::string Value::getXml(int indent) const
+ULXR_API_IMPL(CppString) Value::getXml(int indent) const
 {
-  std::string ret;
+  CppString ret;
   if (baseVal != 0)
     ret = baseVal->getXml(indent);
   return ret;
 }
 
 
-Struct* Value::getStruct()
+ULXR_API_IMPL(std::string) Value::getWbXml() const
+{
+  std::string ret;
+  if (baseVal != 0)
+    ret = baseVal->getWbXml();
+  return ret;
+}
+
+
+ULXR_API_IMPL(Struct*) Value::getStruct()
 {
   ULXR_ASSERT_RPCTYPE(RpcStruct);
   return structVal;
 };
 
 
-const Struct* Value::getStruct() const
+ULXR_API_IMPL(const Struct*) Value::getStruct() const
 {
   ULXR_ASSERT_RPCTYPE(RpcStruct);
   return structVal;
 };
 
 
-Array* Value::getArray()
+ULXR_API_IMPL(Array*) Value::getArray()
 {
   ULXR_ASSERT_RPCTYPE(RpcArray);
   return arrayVal;
 };
 
 
-const Array* Value::getArray() const
+ULXR_API_IMPL(const Array*) Value::getArray() const
 {
   ULXR_ASSERT_RPCTYPE(RpcArray);
   return arrayVal;
 };
 
 
- Value::operator Boolean& ()
+ULXR_API_IMPL0 Value::operator Boolean& ()
 {
   ULXR_ASSERT_RPCTYPE(RpcBoolean);
   return *boolVal;
 }
 
 
- Value::operator const Boolean& () const
+ULXR_API_IMPL0 Value::operator const Boolean& () const
 {
   ULXR_ASSERT_RPCTYPE(RpcBoolean);
   return *boolVal;
 }
 
 
- Value::operator Integer& ()
+ULXR_API_IMPL0 Value::operator Integer& ()
 {
   ULXR_ASSERT_RPCTYPE(RpcInteger);
   return *intVal;
 }
 
 
- Value::operator const Integer& () const
+ULXR_API_IMPL0 Value::operator const Integer& () const
 {
   ULXR_ASSERT_RPCTYPE(RpcInteger);
   return *intVal;
 }
 
 
- Value::operator Double& ()
+ULXR_API_IMPL0 Value::operator Double& ()
 {
   ULXR_ASSERT_RPCTYPE(RpcDouble);
   return *doubleVal;
 }
 
 
- Value::operator const Double& () const
+ULXR_API_IMPL0 Value::operator const Double& () const
 {
   ULXR_ASSERT_RPCTYPE(RpcDouble);
   return *doubleVal;
 }
 
 
- Value::operator Array& ()
+ULXR_API_IMPL0 Value::operator Array& ()
 {
   ULXR_ASSERT_RPCTYPE(RpcArray);
   return *arrayVal;
 }
 
 
- Value::operator const Array& () const
+ULXR_API_IMPL0 Value::operator const Array& () const
 {
   ULXR_ASSERT_RPCTYPE(RpcArray);
   return *arrayVal;
 }
 
 
- Value::operator Struct& ()
+ULXR_API_IMPL0 Value::operator Struct& ()
 {
   ULXR_ASSERT_RPCTYPE(RpcStruct);
   return *structVal;
 }
 
 
- Value::operator const Struct& () const
+ULXR_API_IMPL0 Value::operator const Struct& () const
 {
   ULXR_ASSERT_RPCTYPE(RpcStruct);
   return *structVal;
 }
 
 
- Value::operator RpcString& ()
+ULXR_API_IMPL0 Value::operator RpcString& ()
 {
   ULXR_ASSERT_RPCTYPE(RpcStrType);
   return *stringVal;
 }
 
 
- Value::operator const RpcString& () const
+ULXR_API_IMPL0 Value::operator const RpcString& () const
 {
   ULXR_ASSERT_RPCTYPE(RpcStrType);
   return *stringVal;
 }
 
 
- Value::operator Base64& ()
+ULXR_API_IMPL0 Value::operator Base64& ()
 {
   ULXR_ASSERT_RPCTYPE(RpcBase64);
   return *base64Val;
 }
 
 
- Value::operator const Base64& () const
+ULXR_API_IMPL0 Value::operator const Base64& () const
 {
   ULXR_ASSERT_RPCTYPE(RpcBase64);
   return *base64Val;
 }
 
 
- Value::operator DateTime& ()
+ULXR_API_IMPL0 Value::operator DateTime& ()
 {
   ULXR_ASSERT_RPCTYPE(RpcDateTime);
   return *dateVal;
 }
 
 
- Value::operator const DateTime& () const
+ULXR_API_IMPL0 Value::operator const DateTime& () const
 {
   ULXR_ASSERT_RPCTYPE(RpcDateTime);
   return *dateVal;
 }
 
 
- Value::Value ()
+ULXR_API_IMPL0 Value::Value ()
 {
    voidVal = new Void();
 }
 
 
- Value::Value (const Value &val)
+ULXR_API_IMPL0 Value::Value (const Value &val)
 {
    baseVal = val.baseVal->cloneValue();
 }
 
 
- Value::Value (const Boolean &val)
+ULXR_API_IMPL0 Value::Value (const Boolean &val)
 {
    boolVal = new Boolean(val);
 }
 
 
- Value::Value (const Integer &val)
+ULXR_API_IMPL0 Value::Value (const Integer &val)
 {
    intVal = new Integer(val);
 }
 
 
- Value::Value (const Double &val)
+ULXR_API_IMPL0 Value::Value (const Double &val)
 {
    doubleVal = new Double(val);
 }
 
 
- Value::Value (const Array &val)
+ULXR_API_IMPL0 Value::Value (const Array &val)
 {
    arrayVal = new Array(val);
 }
 
 
- Value::Value (const Struct &val)
+ULXR_API_IMPL0 Value::Value (const Struct &val)
 {
    structVal = new Struct(val);
 }
 
 
- Value::Value (const RpcString &val)
+ULXR_API_IMPL0 Value::Value (const RpcString &val)
 {
    stringVal = new RpcString(val);
 }
 
 
- Value::Value (const Base64 &val)
+ULXR_API_IMPL0 Value::Value (const Base64 &val)
 {
    base64Val = new Base64(val);
 }
 
 
 
- Value::Value (const DateTime &val)
+ULXR_API_IMPL0 Value::Value (const DateTime &val)
 {
    dateVal = new DateTime(val);
 }
 
 
+#ifdef ULXR_USE_INTRINSIC_VALUE_TYPES
 
- Value::Value (const char *val)
+
+ULXR_API_IMPL0 Value::Value (const char *val)
 {
    stringVal = new RpcString(val);
 }
 
- Value::Value (const double &val)
+
+#ifdef ULXR_UNICODE
+
+ULXR_API_IMPL0 Value::Value (const wchar_t *val)
+{
+  Cpp16BitString wstr = val;
+  stringVal = new RpcString(unicodeToUtf8(wstr));
+}
+
+#endif
+
+
+ULXR_API_IMPL0 Value::Value (const double &val)
 {
    doubleVal = new Double(val);
 }
 
 
- Value::Value (const int &val)
+ULXR_API_IMPL0 Value::Value (const int &val)
 {
    intVal = new Integer(val);
 }
 
 
- Value::Value (const bool &val)
+ULXR_API_IMPL0 Value::Value (const bool &val)
 {
    boolVal = new Boolean(val);
 }
 
 
-Value& Value::operator= (const Value &val)
+#endif
+
+
+ULXR_API_IMPL(Value &) Value::operator= (const Value &val)
 {
    ValueBase *temp = val.baseVal->cloneValue();
    delete baseVal;
@@ -375,7 +420,7 @@ Value& Value::operator= (const Value &val)
 }
 
 
- Value::~Value ()
+ULXR_API_IMPL0 Value::~Value ()
 
 {
   delete baseVal;
@@ -386,116 +431,116 @@ Value& Value::operator= (const Value &val)
 //////////////////////////////////////////////////////
 
 
- ValueBase::ValueBase (ValueType t)
+ULXR_API_IMPL0 ValueBase::ValueBase (ValueType t)
      : type(t)
 {
 }
 
 
-ValueType ValueBase::getType() const
+ULXR_API_IMPL(ValueType) ValueBase::getType() const
 {
   return type;
 }
 
 
- ValueBase::~ValueBase ()
+ULXR_API_IMPL0 ValueBase::~ValueBase ()
 {
 }
 
 
-bool ValueBase::isVoid() const
+ULXR_API_IMPL(bool) ValueBase::isVoid() const
 {
   return type == RpcVoid;
 }
 
 
-bool ValueBase::isBoolean() const
+ULXR_API_IMPL(bool) ValueBase::isBoolean() const
 {
   return type == RpcBoolean;
 }
 
 
-bool ValueBase::isInteger() const
+ULXR_API_IMPL(bool) ValueBase::isInteger() const
 {
   return type == RpcInteger;
 }
 
 
-bool ValueBase::isDouble() const
+ULXR_API_IMPL(bool) ValueBase::isDouble() const
 {
   return type == RpcDouble;
 }
 
 
-bool ValueBase::isArray() const
+ULXR_API_IMPL(bool) ValueBase::isArray() const
 {
   return type == RpcArray;
 }
 
 
-bool ValueBase::isStruct() const
+ULXR_API_IMPL(bool) ValueBase::isStruct() const
 {
   return type == RpcStruct;
 }
 
 
-bool ValueBase::isString() const
+ULXR_API_IMPL(bool) ValueBase::isString() const
 {
   return type == RpcStrType;
 }
 
 
-bool ValueBase::isBase64() const
+ULXR_API_IMPL(bool) ValueBase::isBase64() const
 {
   return type == RpcBase64;
 }
 
 
-bool ValueBase::isDateTime() const
+ULXR_API_IMPL(bool) ValueBase::isDateTime() const
 {
   return type == RpcDateTime;
 }
 
 
-std::string ValueBase::getTypeName() const
+ULXR_API_IMPL(CppString) ValueBase::getTypeName() const
 {
-  std::string ret = "RpcValue";
+  CppString ret = ULXR_PCHAR("RpcValue");
   switch(getType() )
   {
      case RpcVoid:
-       ret = "RpcVoid";
+       ret = ULXR_PCHAR("RpcVoid");
      break;
 
      case RpcInteger:
-       ret = "RpcInteger";
+       ret = ULXR_PCHAR("RpcInteger");
      break;
 
      case RpcDouble:
-       ret = "RpcDouble";
+       ret = ULXR_PCHAR("RpcDouble");
      break;
 
      case RpcBoolean:
-       ret = "RpcBoolean";
+       ret = ULXR_PCHAR("RpcBoolean");
      break;
 
      case RpcStrType:
-       ret = "RpcString";
+       ret = ULXR_PCHAR("RpcString");
      break;
 
      case RpcDateTime:
-       ret = "RpcDateTime";
+       ret = ULXR_PCHAR("RpcDateTime");
      break;
 
      case RpcBase64:
-       ret = "RpcBase64";
+       ret = ULXR_PCHAR("RpcBase64");
      break;
 
      case RpcArray:
-       ret = "RpcArray";
+       ret = ULXR_PCHAR("RpcArray");
      break;
 
      case RpcStruct:
-       ret = "RpcStruct";
+       ret = ULXR_PCHAR("RpcStruct");
      break;
   }
   return ret;
@@ -505,118 +550,145 @@ std::string ValueBase::getTypeName() const
 //////////////////////////////////////////////////////
 
 
- Void::Void ()
+ULXR_API_IMPL0 Void::Void ()
  : ValueBase(RpcVoid)
 {
 }
 
 
- Void::~Void ()
+ULXR_API_IMPL0 Void::~Void ()
 {
 }
 
 
-ValueBase * Void::cloneValue() const
+ULXR_API_IMPL(ValueBase *) Void::cloneValue() const
 {
   ULXR_ASSERT_RPCTYPE(RpcVoid);
   return new Void(*this);
 }
 
 
-std::string Void::getSignature(bool /*deep*/) const
+ULXR_API_IMPL(CppString) Void::getSignature(bool /*deep*/) const
 {
   ULXR_ASSERT_RPCTYPE(RpcVoid);
   return getValueName();
 }
 
 
-std::string Void::getValueName()
+ULXR_API_IMPL(CppString) Void::getValueName()
 {
-  return "void";
+  return ULXR_PCHAR("void");
 }
 
-std::string Void::getXml(int /*indent*/) const
+
+ULXR_API_IMPL(std::string) Void::getWbXml() const
 {
   ULXR_ASSERT_RPCTYPE(RpcVoid);
   return "";
 }
 
 
+ULXR_API_IMPL(CppString) Void::getXml(int /*indent*/) const
+{
+  ULXR_ASSERT_RPCTYPE(RpcVoid);
+  return ULXR_PCHAR("");
+}
+
+
 //////////////////////////////////////////////////////
 
 
- Boolean::Boolean ()
+ULXR_API_IMPL0 Boolean::Boolean ()
  : ValueBase(RpcBoolean)
 {
 }
 
 
- Boolean::Boolean (bool b)
+ULXR_API_IMPL0 Boolean::Boolean (bool b)
  : ValueBase(RpcBoolean), val(b)
 {
 }
 
 
- Boolean::~Boolean ()
+ULXR_API_IMPL0 Boolean::~Boolean ()
 {
 }
 
 
- Boolean::Boolean (const std::string &s)
+ULXR_API_IMPL0 Boolean::Boolean (const CppString &s)
   : ValueBase(RpcBoolean)
 {
-  if (   s == "true" || s == "TRUE"
-      || s == "1" || s == "on" || s == "ON")
+  if (   s == ULXR_PCHAR("true") || s == ULXR_PCHAR("TRUE")
+      || s == ULXR_PCHAR("1") || s == ULXR_PCHAR("on") || s == ULXR_PCHAR("ON"))
     val = true;
   else
     val = false;
 }
 
 
-ValueBase * Boolean::cloneValue() const
+ULXR_API_IMPL(ValueBase *) Boolean::cloneValue() const
 {
   ULXR_ASSERT_RPCTYPE(RpcBoolean);
   return new Boolean(*this);
 }
 
 
-std::string Boolean::getSignature(bool /*deep*/) const
+ULXR_API_IMPL(CppString) Boolean::getSignature(bool /*deep*/) const
 {
   ULXR_ASSERT_RPCTYPE(RpcBoolean);
   return getValueName();
 }
 
 
-std::string Boolean::getValueName()
+ULXR_API_IMPL(CppString) Boolean::getValueName()
 {
-  return "bool";
+  return ULXR_PCHAR("bool");
 }
 
 
-std::string Boolean::getXml(int indent) const
+ULXR_API_IMPL(std::string) Boolean::getWbXml() const
 {
   ULXR_ASSERT_RPCTYPE(RpcBoolean);
-  std::string s = getXmlIndent(indent);
-  s += "<value><boolean>";
+  std::string s;
+
+  s = ValueParserWb::wbToken_Value;
+  s += ValueParserWb::wbToken_Boolean;
 
   if (val)
-    s += "1"; // "true"
+    s += getWbXmlString(ULXR_PCHAR("1"));
   else
-    s += "0"; // "false"
+    s += getWbXmlString(ULXR_PCHAR("0"));
 
-  s += "</boolean></value>";
+  s += WbXmlParser::wbxml_END;
+  s += WbXmlParser::wbxml_END;
   return s;
 }
 
 
-bool Boolean::getBoolean () const
+ULXR_API_IMPL(CppString) Boolean::getXml(int indent) const
+{
+  ULXR_ASSERT_RPCTYPE(RpcBoolean);
+  CppString s = getXmlIndent(indent);
+  s += ULXR_PCHAR("<value><boolean>");
+
+  if (val)
+    s += ULXR_PCHAR("1"); // "true"
+  else
+    s += ULXR_PCHAR("0"); // "false"
+
+  s += ULXR_PCHAR("</boolean></value>");
+  return s;
+}
+
+
+ULXR_API_IMPL(bool) Boolean::getBoolean () const
 {
   ULXR_ASSERT_RPCTYPE(RpcBoolean);
   return val;
 }
 
 
-void Boolean::setBoolean(const bool newval)
+ULXR_API_IMPL(void) Boolean::setBoolean(const bool newval)
 {
   ULXR_ASSERT_RPCTYPE(RpcBoolean);
   val = newval;
@@ -626,35 +698,35 @@ void Boolean::setBoolean(const bool newval)
 //////////////////////////////////////////////////////
 
 
- Integer::Integer ()
+ULXR_API_IMPL0 Integer::Integer ()
   : ValueBase(RpcInteger)
 {
 }
 
 
- Integer::Integer (int i)
+ULXR_API_IMPL0 Integer::Integer (int i)
  : ValueBase(RpcInteger), val(i)
 {
 }
 
 
- Integer::~Integer ()
+ULXR_API_IMPL0 Integer::~Integer ()
 {
 }
 
 
- Integer::Integer (const std::string &s)
+ULXR_API_IMPL0 Integer::Integer (const CppString &s)
   : ValueBase(RpcInteger)
 {
-//  val = atoi(s.c_str() );
+//  val = ulxr_atoi(s.c_str() );
   char *endp;
-  val = strtol(s.c_str(), &endp, 10 );
+  val = strtol(getLatin1(s).c_str(), &endp, 10 );
 //  if (*endp != 0)
 // FIXME
 }
 
 
-ValueBase * Integer::cloneValue() const
+ULXR_API_IMPL(ValueBase *) Integer::cloneValue() const
 {
   ULXR_ASSERT_RPCTYPE(RpcInteger);
   return new Integer(*this);
@@ -662,43 +734,63 @@ ValueBase * Integer::cloneValue() const
 
 
 
-std::string Integer::getSignature(bool /*deep*/) const
+ULXR_API_IMPL(CppString) Integer::getSignature(bool /*deep*/) const
 {
   ULXR_ASSERT_RPCTYPE(RpcInteger);
   return getValueName();
 }
 
 
-std::string Integer::getValueName()
+ULXR_API_IMPL(CppString) Integer::getValueName()
 {
-  return "int";
+  return ULXR_PCHAR("int");
 }
 
 
-std::string Integer::getXml(int indent) const
+ULXR_API_IMPL(std::string) Integer::getWbXml() const
 {
   ULXR_ASSERT_RPCTYPE(RpcInteger);
-  std::string s = getXmlIndent(indent);
-  s += "<value><i4>";
+  std::string s;
+  s = (char)ValueParserWb::wbToken_Value;
+  s += (char)ValueParserWb::wbToken_I4;
 
   char buff[100];
-  if (snprintf(buff, sizeof(buff), "%d", val) >= (int) sizeof(buff))
-    throw RuntimeException(ApplicationError, "Buffer for conversion too small in Integer::getXml() ");
+  if (ulxr_snprintf(buff, sizeof(buff), "%d", val) >= (int) sizeof(buff))
+    throw RuntimeException(ApplicationError,
+                           ulxr_i18n(ULXR_PCHAR("Buffer for conversion too small in Integer::getWbXml() ")));
 
-  s += buff;
-  s += "</i4></value>";
+  s += getWbXmlString(ULXR_GET_STRING(buff));
+  s += (char)WbXmlParser::wbxml_END;
+  s += (char)WbXmlParser::wbxml_END;
   return s;
 }
 
 
-int Integer::getInteger () const
+ULXR_API_IMPL(CppString) Integer::getXml(int indent) const
+{
+  ULXR_ASSERT_RPCTYPE(RpcInteger);
+  CppString s = getXmlIndent(indent);
+  s += ULXR_PCHAR("<value><i4>");
+
+  char buff[100];
+  if (ulxr_snprintf(buff, sizeof(buff), "%d", val) >= (int) sizeof(buff))
+    throw RuntimeException(ApplicationError,
+                           ulxr_i18n(ULXR_PCHAR("Buffer for conversion too small in Integer::getXml() ")));
+
+  s += ULXR_GET_STRING(buff);
+  s += ULXR_PCHAR("</i4></value>");
+  return s;
+}
+
+
+ULXR_API_IMPL(int ) Integer::getInteger () const
 {
   ULXR_ASSERT_RPCTYPE(RpcInteger);
   return val;
 }
 
 
-void Integer::setInteger(const int newval)
+ULXR_API_IMPL(void) Integer::setInteger(const int newval)
 {
   ULXR_ASSERT_RPCTYPE(RpcInteger);
   val = newval;
@@ -711,52 +803,52 @@ void Integer::setInteger(const int newval)
 bool Double::scientific = false;
 
 
- Double::Double ()
+ULXR_API_IMPL0 Double::Double ()
   : ValueBase(RpcDouble)
 {
 }
 
 
- Double::Double (double d)
+ULXR_API_IMPL0 Double::Double (double d)
   : ValueBase(RpcDouble)
   , val(d)
 {
 }
 
 
- Double::~Double ()
+ULXR_API_IMPL0 Double::~Double ()
 {
 }
 
 
- Double::Double (const std::string &s)
+ULXR_API_IMPL0 Double::Double (const CppString &s)
   : ValueBase(RpcDouble)
 {
-  val = atof(s.c_str() );
+  val = atof(getLatin1(s).c_str() );
 }
 
 
-ValueBase * Double::cloneValue() const
+ULXR_API_IMPL(ValueBase *) Double::cloneValue() const
 {
   ULXR_ASSERT_RPCTYPE(RpcDouble);
   return new Double(*this);
 }
 
 
-std::string Double::getSignature(bool /*deep*/) const
+ULXR_API_IMPL(CppString) Double::getSignature(bool /*deep*/) const
 {
   ULXR_ASSERT_RPCTYPE(RpcDouble);
   return getValueName();
 }
 
 
-std::string Double::getValueName()
+ULXR_API_IMPL(CppString) Double::getValueName()
 {
-  return "double";
+  return ULXR_PCHAR("double");
 }
 
 
-bool Double::setScientificMode(bool in_scientific)
+ULXR_API_IMPL(bool) Double::setScientificMode(bool in_scientific)
 {
   bool prev = scientific;
   scientific = in_scientific;
@@ -764,36 +856,62 @@ bool Double::setScientificMode(bool in_scientific)
 }
 
 
-std::string Double::getXml(int indent) const
+ULXR_API_IMPL(std::string) Double::getWbXml() const
 {
   ULXR_ASSERT_RPCTYPE(RpcDouble);
-  std::string s = getXmlIndent(indent);
-  s += "<value><double>";
+  std::string s;
   char buff[1000];
 
   unsigned used;
   if (scientific)
-    used = snprintf(buff, sizeof(buff), "%g", val);
+    used = ulxr_snprintf(buff, sizeof(buff), "%g", val);
   else
-    used = snprintf(buff, sizeof(buff), "%f", val);
+    used = ulxr_snprintf(buff, sizeof(buff), "%f", val);
 
   if (used >= sizeof(buff))
-    throw RuntimeException(ApplicationError,  "Buffer for conversion too small in Double::getXml ");
+      throw RuntimeException(ApplicationError,
+                           ulxr_i18n(ULXR_PCHAR("Buffer for conversion too small in Double::getWbXml ")));
 
-  s += buff;
-  s += "</double></value>";
+  s = ValueParserWb::wbToken_Value;
+  s += ValueParserWb::wbToken_Double;
+  s += getWbXmlString(ULXR_GET_STRING(buff));
+  s += (char)WbXmlParser::wbxml_END;
+  s += (char)WbXmlParser::wbxml_END;
   return s;
 }
 
 
-double Double::getDouble () const
+ULXR_API_IMPL(CppString) Double::getXml(int indent) const
+{
+  ULXR_ASSERT_RPCTYPE(RpcDouble);
+  CppString s = getXmlIndent(indent);
+  s += ULXR_PCHAR("<value><double>");
+  char buff[1000];
+
+  unsigned used;
+  if (scientific)
+    used = ulxr_snprintf(buff, sizeof(buff), "%g", val);
+  else
+    used = ulxr_snprintf(buff, sizeof(buff), "%f", val);
+
+  if (used >= sizeof(buff))
+    throw RuntimeException(ApplicationError,
+                           ulxr_i18n(ULXR_PCHAR("Buffer for conversion too small in Double::getXml ")));
+
+  s += ULXR_GET_STRING(buff);
+  s += ULXR_PCHAR("</double></value>");
+  return s;
+}
+
+
+ULXR_API_IMPL(double) Double::getDouble () const
 {
   ULXR_ASSERT_RPCTYPE(RpcDouble);
   return val;
 }
 
 
-void Double::setDouble(const double newval)
+ULXR_API_IMPL(void) Double::setDouble(const double newval)
 {
   ULXR_ASSERT_RPCTYPE(RpcDouble);
   val = newval;
@@ -803,205 +921,300 @@ void Double::setDouble(const double newval)
 //////////////////////////////////////////////////////
 
 
- RpcString::RpcString ()
+ULXR_API_IMPL0 RpcString::RpcString ()
   : ValueBase(RpcStrType)
 {
 }
 
 
- RpcString::RpcString (const std::string &s)
+ULXR_API_IMPL0 RpcString::RpcString (const Cpp8BitString &s)
  : ValueBase(RpcStrType)
 {
   setString(s);
 }
 
 
- RpcString::~RpcString ()
+ULXR_API_IMPL0 RpcString::~RpcString ()
 {
 }
 
-ValueBase * RpcString::cloneValue() const
+
+#ifdef ULXR_UNICODE
+
+ULXR_API_IMPL0 RpcString::RpcString (const Cpp16BitString &s)
+  : ValueBase(RpcStrType)
+{
+  setString(s);
+}
+
+#endif
+
+ULXR_API_IMPL(ValueBase *) RpcString::cloneValue() const
 {
   ULXR_ASSERT_RPCTYPE(RpcStrType);
   return new RpcString(*this);
 }
 
 
-std::string RpcString::getSignature(bool /*deep*/) const
+ULXR_API_IMPL(CppString) RpcString::getSignature(bool /*deep*/) const
 {
   ULXR_ASSERT_RPCTYPE(RpcStrType);
   return getValueName();
 }
 
 
-std::string RpcString::getValueName()
+ULXR_API_IMPL(CppString) RpcString::getValueName()
 {
-  return "string";
+  return ULXR_PCHAR("string");
 }
 
 
-std::string RpcString::getXml(int indent) const
+ULXR_API_IMPL(std::string) RpcString::getWbXml() const
 {
   ULXR_ASSERT_RPCTYPE(RpcStrType);
-  std::string s = getXmlIndent(indent);
-  s += "<value><string>";
-  s += xmlEscape(val);
-  s += "</string></value>";
+  std::string s;
+  s = ValueParserWb::wbToken_Value;
+  s += ValueParserWb::wbToken_String;
+  s += getWbXmlString(val);
+  s += (char)WbXmlParser::wbxml_END;
+  s += (char)WbXmlParser::wbxml_END;
   return s;
 }
 
 
-std::string RpcString::getString () const
+ULXR_API_IMPL(CppString) RpcString::getXml(int indent) const
+{
+  ULXR_ASSERT_RPCTYPE(RpcStrType);
+  CppString s = getXmlIndent(indent);
+  s += ULXR_PCHAR("<value><string>");
+  s += xmlEscape(val);
+  s += ULXR_PCHAR("</string></value>");
+  return s;
+}
+
+
+ULXR_API_IMPL(CppString) RpcString::getString () const
 {
   ULXR_ASSERT_RPCTYPE(RpcStrType);
   return val;
 }
 
 
-void RpcString::setString(const std::string &newval)
+#ifdef ULXR_UNICODE
+
+ULXR_API_IMPL(Cpp16BitString) RpcString::getUnicodeString () const
+{
+  ULXR_ASSERT_RPCTYPE(RpcStrType);
+#ifdef ULXR_UNICODE
+  return val;
+#else
+  return utf8ToUnicode(val);
+#endif
+}
+
+#endif
+
+#if (defined(HAVE_ICONV_H) || defined(HAVE_ICONV)) && !defined (ULXR_UNICODE)
+
+ULXR_API_IMPL(CppString) RpcString::getString (const char *encoding) const
+{
+  return utf8ToEncoding(val, encoding);
+}
+
+
+ULXR_API_IMPL(void) RpcString::setString(const Cpp8BitString &newval, const char *encoding)
+{
+  val = encodingToUtf8(newval, encoding);
+}
+
+#endif
+
+
+ULXR_API_IMPL(void) RpcString::setString(const Cpp8BitString &newval)
+{
+  ULXR_ASSERT_RPCTYPE(RpcStrType);
+#ifdef ULXR_UNICODE
+  val = getUnicode(newval);
+#else
+  val = newval;
+#endif
+}
+
+
+#ifdef ULXR_UNICODE
+
+ULXR_API_IMPL(void) RpcString::setString(const Cpp16BitString& newval)
 {
   ULXR_ASSERT_RPCTYPE(RpcStrType);
   val = newval;
 }
 
+#endif
+
 //////////////////////////////////////////////////////
 
 
- Base64::Base64 ()
+ULXR_API_IMPL0 Base64::Base64 ()
   : ValueBase(RpcBase64)
 {
 }
 
 
- Base64::Base64 (const std::string &s)
+ULXR_API_IMPL0 Base64::Base64 (const CppString &s)
   : ValueBase(RpcBase64)
 {
   setString(s);
 }
 
 
- Base64::~Base64 ()
+ULXR_API_IMPL0 Base64::~Base64 ()
 {
 }
 
 
-std::string Base64::getBase64() const
+ULXR_API_IMPL(CppString) Base64::getBase64() const
 {
   return val;
 }
 
 
-void Base64::setBase64(const std::string s)
+ULXR_API_IMPL(void) Base64::setBase64(const CppString s)
 {
   val = s;
 }
 
 
-ValueBase * Base64::cloneValue() const
+ULXR_API_IMPL(ValueBase *) Base64::cloneValue() const
 {
   ULXR_ASSERT_RPCTYPE(RpcBase64);
   return new Base64(*this);
 }
 
 
-std::string Base64::getSignature(bool /*deep*/) const
+ULXR_API_IMPL(CppString) Base64::getSignature(bool /*deep*/) const
 {
   ULXR_ASSERT_RPCTYPE(RpcBase64);
   return getValueName();
 }
 
 
-std::string Base64::getValueName()
+ULXR_API_IMPL(CppString) Base64::getValueName()
 {
-  return "base64";
+  return ULXR_PCHAR("base64");
 }
 
 
-std::string Base64::getXml(int indent) const
+ULXR_API_IMPL(CppString) Base64::getXml(int indent) const
 {
   ULXR_ASSERT_RPCTYPE(RpcBase64);
-  std::string s = getXmlIndent(indent);
-  s += "<value><base64>";
+  CppString s = getXmlIndent(indent);
+  s += ULXR_PCHAR("<value><base64>");
   s += val;
-  s += "</base64></value>";
+  s += ULXR_PCHAR("</base64></value>");
   return s;
 }
 
 
-std::string Base64::getString () const
+ULXR_API_IMPL(std::string) Base64::getWbXml() const
 {
   ULXR_ASSERT_RPCTYPE(RpcBase64);
-  return vec2Str(fromBase64(val));
+  std::string s;
+  s += ValueParserWb::wbToken_Value;
+  s += ValueParserWb::wbToken_Base64;
+  s += getWbXmlString(val);
+  s += (char)WbXmlParser::wbxml_END;
+  s += (char)WbXmlParser::wbxml_END;
+  return s;
 }
 
 
-void Base64::setString(const std::string &newval)
+ULXR_API_IMPL(CppString) Base64::getString () const
 {
   ULXR_ASSERT_RPCTYPE(RpcBase64);
-  val = toBase64(str2Vec<unsigned char>(newval));
+  return decodeBase64(val);
+}
+
+
+ULXR_API_IMPL(void) Base64::setString(const CppString &newval)
+{
+  ULXR_ASSERT_RPCTYPE(RpcBase64);
+  val = encodeBase64(newval);
 }
 
 
 //////////////////////////////////////////////////////
 
 
- DateTime::DateTime ()
+ULXR_API_IMPL0 DateTime::DateTime ()
   : ValueBase(RpcDateTime)
 {
 }
 
 
- DateTime::DateTime (const std::string &s)
+ULXR_API_IMPL0 DateTime::DateTime (const CppString &s)
  : ValueBase(RpcDateTime)
  , val(s)
 {
 }
 
 
- DateTime::DateTime (const time_t &tm)
+ULXR_API_IMPL0 DateTime::DateTime (const ulxr_time_t &tm)
   : ValueBase(RpcDateTime)
 {
   setDateTime(tm);
 }
 
 
- DateTime::~DateTime ()
+ULXR_API_IMPL0 DateTime::~DateTime ()
 {
 }
 
 
-ValueBase * DateTime::cloneValue() const
+ULXR_API_IMPL(ValueBase *) DateTime::cloneValue() const
 {
   ULXR_ASSERT_RPCTYPE(RpcDateTime);
   return new DateTime(*this);
 }
 
 
-std::string DateTime::getSignature(bool /*deep*/) const
+ULXR_API_IMPL(CppString) DateTime::getSignature(bool /*deep*/) const
 {
   ULXR_ASSERT_RPCTYPE(RpcDateTime);
   return getValueName();
 }
 
 
-std::string DateTime::getValueName()
+ULXR_API_IMPL(CppString) DateTime::getValueName()
 {
-  return "dateTime.iso8601";
+  return ULXR_PCHAR("dateTime.iso8601");
 }
 
 
-std::string DateTime::getXml(int indent) const
+ULXR_API_IMPL(std::string) DateTime::getWbXml() const
 {
   ULXR_ASSERT_RPCTYPE(RpcDateTime);
-  std::string s = getXmlIndent(indent);
-  s += "<value><dateTime.iso8601>";
-  s += val;
-  s += "</dateTime.iso8601></value>";
+  std::string s;
+  s += ValueParserWb::wbToken_Value;
+  s += ValueParserWb::wbToken_Date;
+  s += getWbXmlString(val);
+  s += (char)WbXmlParser::wbxml_END;
+  s += (char)WbXmlParser::wbxml_END;
   return s;
 }
 
 
-std::string DateTime::getDateTime () const
+ULXR_API_IMPL(CppString) DateTime::getXml(int indent) const
+{
+  ULXR_ASSERT_RPCTYPE(RpcDateTime);
+  CppString s = getXmlIndent(indent);
+  s += ULXR_PCHAR("<value><dateTime.iso8601>");
+  s += val;
+  s += ULXR_PCHAR("</dateTime.iso8601></value>");
+  return s;
+}
+
+
+ULXR_API_IMPL(CppString) DateTime::getDateTime () const
 {
   ULXR_ASSERT_RPCTYPE(RpcDateTime);
   return val;
@@ -1010,45 +1223,48 @@ std::string DateTime::getDateTime () const
 
 namespace {
 
-static std::string padded(unsigned num)
+static CppString padded(unsigned num)
 {
-  std::string s;
+  CppString s;
   if (num < 10)
     s += L'0';
-  s += toString(num);
+  s += HtmlFormHandler::makeNumber(num);
   return s;
 }
 
 }
 
 
-void DateTime::setDateTime (const time_t &tmt,
-                            bool add_dash /* =false */,
-                            bool add_colon /* =true */)
+ULXR_API_IMPL(void) DateTime::setDateTime (const ulxr_time_t &tmt,
+                                        bool add_dash /* =false */,
+                                        bool add_colon /* =true */)
 {
-  std::string s;
-  tm ltm;
-  localtime_r(&tmt, &ltm);
-  s += padded(ltm.tm_year+1900);
+#ifndef ULXR_OMIT_REENTRANT_PROTECTOR
+  Mutex::Locker lock(localtimeMutex);
+#endif
+
+  CppString s;
+  ulxr_tm * ltm = ulxr_localtime(&tmt);
+  s += padded(ltm->tm_year+1900);
   if (add_dash)
     s += '-';
-  s += padded(ltm.tm_mon+1);
+  s += padded(ltm->tm_mon+1);
   if (add_dash)
     s += '-';
-  s += padded(ltm.tm_mday);
-  s += "T";
-  s += padded(ltm.tm_hour);
+  s += padded(ltm->tm_mday);
+  s += ULXR_PCHAR("T");
+  s += padded(ltm->tm_hour);
   if (add_colon)
     s += ':';
-  s += padded(ltm.tm_min);
+  s += padded(ltm->tm_min);
   if (add_colon)
     s += ':';
-  s += padded(ltm.tm_sec);
+  s += padded(ltm->tm_sec);
   setDateTime(s);
 }
 
 
-void DateTime::setDateTime(const std::string &newval)
+ULXR_API_IMPL(void) DateTime::setDateTime(const CppString &newval)
 {
   ULXR_ASSERT_RPCTYPE(RpcDateTime);
   val = newval;
@@ -1058,76 +1274,97 @@ void DateTime::setDateTime(const std::string &newval)
 //////////////////////////////////////////////////////
 
 
- Array::Array ()
+ULXR_API_IMPL0 Array::Array ()
   : ValueBase(RpcArray)
 {
 }
 
 
- Array::~Array ()
+ULXR_API_IMPL0 Array::~Array ()
 {
 }
 
 
-unsigned Array::size() const
+ULXR_API_IMPL(unsigned) Array::size() const
 {
   return values.size();
 }
 
 
-void Array::clear()
+ULXR_API_IMPL(void) Array::clear()
 {
   values.clear();
 }
 
 
-ValueBase * Array::cloneValue() const
+ULXR_API_IMPL(ValueBase *) Array::cloneValue() const
 {
   ULXR_ASSERT_RPCTYPE(RpcArray);
   return new Array(*this);
 }
 
 
-std::string Array::getSignature(bool deep) const
+ULXR_API_IMPL(CppString) Array::getSignature(bool deep) const
 {
   if (!deep)
     return getValueName();
 
 
   ULXR_ASSERT_RPCTYPE(RpcArray);
-  std::string s;
+  CppString s;
   if (values.size() == 0)
-    return "[]";
+    return ULXR_PCHAR("[]");
 
-  s += '[';
+  s += ULXR_CHAR('[');
   bool comma = values.size() >= 1;
   for (unsigned i = 0; i < values.size(); ++i)
   {
     if (comma && i != 0)
-      s += ',';
+      s += ULXR_CHAR(',');
     s += values[i].getSignature();
   }
-  s += ']';
+  s += ULXR_CHAR(']');
 
   return s;
 }
 
 
-std::string Array::getValueName()
+ULXR_API_IMPL(CppString) Array::getValueName()
 {
-  return "array";
+  return ULXR_PCHAR("array");
 }
 
 
-std::string Array::getXml(int indent) const
+ULXR_API_IMPL(std::string) Array::getWbXml() const
 {
   ULXR_ASSERT_RPCTYPE(RpcArray);
-  std::string ind = getXmlIndent(indent);
-  std::string ind1 = getXmlIndent(indent+1);
-  std::string ind2 = getXmlIndent(indent+2);
-  std::string s = ind + "<value>" + getXmlLinefeed();
-  s += ind1 + "<array>" + getXmlLinefeed();
-  s += ind2 + "<data>" + getXmlLinefeed();
+  std::string s;
+  s = ValueParserWb::wbToken_Value;
+  s += ValueParserWb::wbToken_Array;
+  s += ValueParserWb::wbToken_Data;
+
+  for (std::vector<Value>::const_iterator
+         it = values.begin(); it != values.end(); ++it)
+  {
+    s += (*it).getWbXml();
+  }
+
+  s += WbXmlParser::wbxml_END;
+  s += WbXmlParser::wbxml_END;
+  s += WbXmlParser::wbxml_END;
+  return s;
+}
+
+
+ULXR_API_IMPL(CppString) Array::getXml(int indent) const
+{
+  ULXR_ASSERT_RPCTYPE(RpcArray);
+  CppString ind = getXmlIndent(indent);
+  CppString ind1 = getXmlIndent(indent+1);
+  CppString ind2 = getXmlIndent(indent+2);
+  CppString s = ind + ULXR_PCHAR("<value>") + getXmlLinefeed();
+  s += ind1 + ULXR_PCHAR("<array>") + getXmlLinefeed();
+  s += ind2 + ULXR_PCHAR("<data>") + getXmlLinefeed();
 
   for (std::vector<Value>::const_iterator
          it = values.begin(); it != values.end(); ++it)
@@ -1135,45 +1372,46 @@ std::string Array::getXml(int indent) const
     s += (*it).getXml(indent+3) + getXmlLinefeed();
   }
 
-  s += ind2 + "</data>" + getXmlLinefeed();
-  s += ind1 + "</array>"+ getXmlLinefeed();
-  s += ind + "</value>";
+  s += ind2 + ULXR_PCHAR("</data>") + getXmlLinefeed();
+  s += ind1 + ULXR_PCHAR("</array>")+ getXmlLinefeed();
+  s += ind + ULXR_PCHAR("</value>");
   return s;
 }
 
 
-void Array::addItem(const Value &item)
+ULXR_API_IMPL(void) Array::addItem(const Value &item)
 {
   values.push_back(item);
 }
 
 
-void Array::setItem(unsigned idx, const Value &item)
+ULXR_API_IMPL(void) Array::setItem(unsigned idx, const Value &item)
 {
   if (idx < values.size() )
     values[idx] = item;
 }
 
 
-Value Array::getItem(unsigned idx) const
+ULXR_API_IMPL(Value) Array::getItem(unsigned idx)
 {
   if (idx < values.size() )
     return values[idx];
-  throw Exception(ApplicationError, "Array index is out of range");
+  else
+   return Value(RpcString());   // FIXME: exception
 }
 
 
 //////////////////////////////////////////////////////
 
 
- Struct::Member::Member(const std::string &str_, const Value &t_)
+ULXR_API_IMPL0 Struct::Member::Member(const CppString &str_, const Value &t_)
  : str(str_)
  , t(t_)
 {
 }
 
 
-const std::string & Struct::Member::getName() const
+const CppString & Struct::Member::getName() const
 {
   return str;
 }
@@ -1188,102 +1426,125 @@ const Value & Struct::Member::getValue() const
 //////////////////////////////////////////////////////
 
 
- Struct::Struct ()
+ULXR_API_IMPL0 Struct::Struct ()
  : ValueBase(RpcStruct)
 {
 }
 
 
- Struct::~Struct ()
+ULXR_API_IMPL0 Struct::~Struct ()
 {
 }
 
 
-ValueBase * Struct::cloneValue() const
+ULXR_API_IMPL(ValueBase *) Struct::cloneValue() const
 {
   ULXR_ASSERT_RPCTYPE(RpcStruct);
   return new Struct(*this);
 }
 
 
-void Struct::clear()
+ULXR_API_IMPL(void) Struct::clear()
 {
   val.clear();
 }
 
 
-unsigned Struct::size() const
+ULXR_API_IMPL(unsigned) Struct::size() const
 {
   return val.size() ;
 }
 
 
-const Struct::Members& Struct::getAllMembers() const
+ULXR_API_IMPL(const Struct::Members&) Struct::getAllMembers() const
 {
   return val;
 }
 
 
-std::string Struct::getSignature(bool deep) const
+ULXR_API_IMPL(CppString) Struct::getSignature(bool deep) const
 {
   if (!deep)
     return getValueName();
 
   ULXR_ASSERT_RPCTYPE(RpcStruct);
-  std::string s;
+  CppString s;
   if (val.size() == 0)
-    return "{}";
+    return ULXR_PCHAR("{}");
 
   if (val.size() > 1)
-    s += '{';
+    s += ULXR_CHAR('{');
 
   for (Members::const_iterator it = val.begin(); it != val.end(); ++it)
   {
-    s += '{';
+    s += ULXR_CHAR('{');
     s += (*it).first;
-    s += ',';
+    s += ULXR_CHAR(',');
     s += (*it).second.getSignature();
-    s += '}';
+    s += ULXR_CHAR('}');
   }
 
   if (val.size() > 1)
-    s += '}';
+    s += ULXR_CHAR('}');
 
   return s;
 }
 
 
-std::string Struct::getValueName()
+ULXR_API_IMPL(CppString) Struct::getValueName()
 {
-  return "struct";
+  return ULXR_PCHAR("struct");
 }
 
 
-std::string Struct::getXml(int indent) const
+ULXR_API_IMPL(CppString) Struct::getXml(int indent) const
 {
   ULXR_ASSERT_RPCTYPE(RpcStruct);
-  std::string ind = getXmlIndent(indent);
-  std::string ind1 = getXmlIndent(indent+1);
-  std::string ind2 = getXmlIndent(indent+2);
-  std::string ind3 = getXmlIndent(indent+3);
-  std::string s = ind + "<value>"+ getXmlLinefeed();
-  s += ind1 + "<struct>" + getXmlLinefeed();
+  CppString ind = getXmlIndent(indent);
+  CppString ind1 = getXmlIndent(indent+1);
+  CppString ind2 = getXmlIndent(indent+2);
+  CppString ind3 = getXmlIndent(indent+3);
+  CppString s = ind + ULXR_PCHAR("<value>")+ getXmlLinefeed();
+  s += ind1 + ULXR_PCHAR("<struct>") + getXmlLinefeed();
 
   for (Members::const_iterator it = val.begin(); it != val.end(); ++it)
   {
-    s += ind2 + "<member>" + getXmlLinefeed();
-    s += ind3 + "<name>" + (*it).first + "</name>" + getXmlLinefeed();
+    s += ind2 + ULXR_PCHAR("<member>") + getXmlLinefeed();
+    s += ind3 + ULXR_PCHAR("<name>") + (*it).first + ULXR_PCHAR("</name>") + getXmlLinefeed();
     s += (*it).second.getXml(indent+3) + getXmlLinefeed();
-    s += ind2 + "</member>" + getXmlLinefeed();
+    s += ind2 + ULXR_PCHAR("</member>") + getXmlLinefeed();
   }
 
-  s += ind1 + "</struct>" + getXmlLinefeed();
-  s += ind + "</value>";
+  s += ind1 + ULXR_PCHAR("</struct>") + getXmlLinefeed();
+  s += ind + ULXR_PCHAR("</value>");
   return s;
 }
 
 
-void Struct::addMember(const std::string &name, const Value &item)
+ULXR_API_IMPL(std::string) Struct::getWbXml() const
+{
+  ULXR_ASSERT_RPCTYPE(RpcStruct);
+  std::string s;
+  s = ValueParserWb::wbToken_Value;
+  s += ValueParserWb::wbToken_Struct;
+
+  for (Members::const_iterator it = val.begin(); it != val.end(); ++it)
+  {
+    s += ValueParserWb::wbToken_Member;
+    s += ValueParserWb::wbToken_Name;
+    s += getWbXmlString((*it).first);
+    s += (char)WbXmlParser::wbxml_END;
+    s += (*it).second.getWbXml();
+    s += (char)WbXmlParser::wbxml_END;
+  }
+
+  s += WbXmlParser::wbxml_END;
+  s += WbXmlParser::wbxml_END;
+  return s;
+}
+
+
+ULXR_API_IMPL(void) Struct::addMember(const CppString &name, const Value &item)
 {
   ULXR_TRACE("Struct::addMember(string, Value)");
   ULXR_ASSERT_RPCTYPE(RpcStruct);
@@ -1291,49 +1552,54 @@ void Struct::addMember(const std::string &name, const Value &item)
 }
 
 
-bool Struct::hasMember(const std::string &name) const
+ULXR_API_IMPL(bool) Struct::hasMember(const CppString &name) const
 {
   ULXR_ASSERT_RPCTYPE(RpcStruct);
   return val.find(name) != val.end();
 }
 
 
-Value Struct::getMember(const std::string &name) const
+ULXR_API_IMPL(Value) Struct::getMember(const CppString &name) const
 {
   ULXR_ASSERT_RPCTYPE(RpcStruct);
   Members::const_iterator it = val.find(name);
   if (it  == val.end())
-    throw RuntimeException(ApplicationError, "Attempt to get unknown Struct member: " +name);
+    throw RuntimeException(ApplicationError,
+                           ulxr_i18n(ULXR_PCHAR("Attempt to get unknown Struct member: ")) +name);
 
   return (*it).second;
 }
 
 
-std::vector<std::string> Struct::getMemberNames() const
+ULXR_API_IMPL(std::vector<CppString>) Struct::getMemberNames() const
 {
-  std::vector<std::string> names;
+  std::vector<CppString> names;
   for (Members::const_iterator it = val.begin(); it != val.end(); ++it)
      names.push_back((*it).first);
   return names;
 }
 
 
-Struct::Member operator<< (const std::string &str, const Value &t)
+#ifdef ULXR_STRUCT_MEMBER_FROM_NAME_VALUE
+
+ULXR_API_IMPL(Struct::Member) operator<< (const CppString &str, const Value &t)
 {
   ULXR_TRACE("Struct::Member operator<< (string, T)");
   return Struct::Member(str, t);
 }
 
-Struct::Member make_member (const std::string &str, const Value &t)
+#endif
+
+ULXR_API_IMPL(Struct::Member) make_member (const CppString &str, const Value &t)
 {
-  ULXR_TRACE("Member operator<< (string, T)");
+  ULXR_TRACE(ULXR_PCHAR("Member operator<< (string, T)"));
   return Struct::Member(str, t);
 }
 
 
-Struct & operator<< (Struct &st, const Struct::Member &k)
+ULXR_API_IMPL(Struct) & operator<< (Struct &st, const Struct::Member &k)
 {
-  ULXR_TRACE("operator<<(Struct, Struct::Member)");
+  ULXR_TRACE(ULXR_PCHAR("operator<<(Struct, Struct::Member)"));
   st.addMember(k.getName(), k.getValue());
   return st;
 }

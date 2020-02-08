@@ -5,7 +5,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: ulxr_responseparse.h 10942 2011-09-13 14:35:52Z korosteleva $
+    $Id: ulxr_responseparse.h 940 2006-12-30 18:22:05Z ewald-arnold $
 
  ***************************************************************************/
 
@@ -30,7 +30,7 @@
 #ifndef ULXR_RESPONSEPARSE_H
 #define ULXR_RESPONSEPARSE_H
 
-#include <ulxmlrpcpp/ulxmlrpcpp.h>
+#include <ulxmlrpcpp/ulxmlrpcpp.h>  // always first header
 
 #include <ulxmlrpcpp/ulxr_valueparse.h>
 #include <ulxmlrpcpp/ulxr_responseparse_base.h>
@@ -42,7 +42,7 @@ namespace ulxr {
 /** An xml parser for a MethodResponse.
   * @ingroup grp_ulxr_parser
   */
-class  MethodResponseParser : public ValueParser,
+class ULXR_API_DECL0 MethodResponseParser : public ValueParser,
                                          public MethodResponseParserBase
 {
  public:

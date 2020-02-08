@@ -5,7 +5,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: ulxr_except.h 10942 2011-09-13 14:35:52Z korosteleva $
+    $Id: ulxr_except.h 940 2006-12-30 18:22:05Z ewald-arnold $
 
  ***************************************************************************/
 
@@ -30,9 +30,9 @@
 #ifndef ULXR_EXCEPT_H
 #define ULXR_EXCEPT_H
 
-#include <ulxmlrpcpp/ulxmlrpcpp.h>
+#include <ulxmlrpcpp/ulxmlrpcpp.h>  // always first header
 
-#include <stdexcept>
+#include <exception>
 
 
 namespace ulxr {
@@ -41,7 +41,10 @@ namespace ulxr {
 /** Base class for XML RPC exceptions.
   * @ingroup grp_ulxr_utilit
   */
-class  Exception : public std::exception
+class ULXR_API_DECL0 Exception
+#ifdef ULXR_USE_STD_EXCEPTION
+   : public std::exception
+#endif
 {
  public:
 
@@ -49,7 +52,7 @@ class  Exception : public std::exception
    * @param fc number representing the error class
    * @param s  the reason for the exception
    */
-   Exception(int fc, const std::string &s);
+   Exception(int fc, const CppString &s);
 
  /** Destroys the exception.
    */
@@ -58,13 +61,14 @@ class  Exception : public std::exception
  /** Gets the reason for the exception.
    * @return   the reason
    */
-   virtual std::string why() const;
+   virtual CppString why() const;
 
  /** Gets a number representing the error.
    * @return   the fault code
    */
    virtual int getFaultCode() const;
 
+#ifdef ULXR_USE_STD_EXCEPTION
   /** Returns the exception description.
     * Provided for compatibility with std::exception. If Unicode is
     * activated you might get corrupt information if you are beyond
@@ -72,18 +76,21 @@ class  Exception : public std::exception
     * @return   description as pointer to a latin1 string.
     */
     virtual const char *what() const throw();
+#endif
 
  private:
 
-  std::string reason;
+  CppString reason;
   int    faultcode;
+#ifdef ULXR_USE_STD_EXCEPTION
   mutable std::string  what_helper;
+#endif
 };
 
 
 /** Exception due to connection or network problems.
   */
-class  ConnectionException : public Exception
+class ULXR_API_DECL0 ConnectionException : public Exception
 {
  public:
 
@@ -92,7 +99,7 @@ class  ConnectionException : public Exception
    * @param stat    the error number (default is according to http documentation if applicable)
    * @param phrase  a human readable phrase describing the status
    */
-   ConnectionException(int fc, const std::string &phrase, int stat);
+   ConnectionException(int fc, const CppString &phrase, int stat);
 
  /** Destroys the exception.
    */
@@ -111,7 +118,7 @@ class  ConnectionException : public Exception
 
 /** Exception due to runtime errors.
   */
-class  RuntimeException : public Exception
+class ULXR_API_DECL0 RuntimeException : public Exception
 {
  public:
 
@@ -119,7 +126,7 @@ class  RuntimeException : public Exception
    * @param fc number representing the error class
    * @param s  the reason for the exception
    */
-   RuntimeException(int fc, const std::string &s);
+   RuntimeException(int fc, const CppString &s);
 
  /** Destroys the exception.
    */
@@ -129,7 +136,7 @@ class  RuntimeException : public Exception
 
 /** XML RPC exception due to a faulty xml structure.
   */
-class  XmlException : public Exception
+class ULXR_API_DECL0 XmlException : public Exception
 {
  public:
 
@@ -139,7 +146,7 @@ class  XmlException : public Exception
    * @param l    the faulty line (relative to the body start!)
    * @param err  a human readable error string
    */
-   XmlException(int fc, const std::string &s, int l, const std::string &err);
+   XmlException(int fc, const CppString &s, int l, const CppString &err);
 
  /** Destroys the exception.
    */
@@ -153,19 +160,19 @@ class  XmlException : public Exception
  /** Gets the error string.
    * @return the string
    */
-   std::string getErrorString() const;
+   CppString getErrorString() const;
 
  private:
 
   int        line;
-  std::string  xmlerror;
+  CppString  xmlerror;
 };
 
 
 /** XML RPC exception due to faulty rpc parameters.
   * One possibility is the wrong type.
   */
-class  ParameterException : public Exception
+class ULXR_API_DECL0 ParameterException : public Exception
 {
  public:
 
@@ -173,7 +180,7 @@ class  ParameterException : public Exception
    * @param fc number representing the error class
    * @param s  the reason for the exception
    */
-   ParameterException(int fc, const std::string &s);
+   ParameterException(int fc, const CppString &s);
 
  /** Destroys the exception.
    */
@@ -184,7 +191,7 @@ class  ParameterException : public Exception
 /** XML RPC exception due to problems while executing
   * the remote method. User fault codes should be positive.
   */
-class  MethodException : public Exception
+class ULXR_API_DECL0 MethodException : public Exception
 {
  public:
 
@@ -192,7 +199,7 @@ class  MethodException : public Exception
    * @param fc   number representing the error class
    * @param s    the reason for the exception
    */
-   MethodException(int fc, const std::string &s);
+   MethodException(int fc, const CppString &s);
 
  /** Destroys the exception.
    */

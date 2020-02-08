@@ -5,7 +5,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: ulxr_method_adder.h 10942 2011-09-13 14:35:52Z korosteleva $
+    $Id: ulxr_method_adder.h 1164 2010-01-06 10:03:51Z ewald-arnold $
 
  ***************************************************************************/
 
@@ -30,7 +30,7 @@
 #ifndef ULXR_METHOD_ADDER_H
 #define ULXR_METHOD_ADDER_H
 
-#include <ulxmlrpcpp/ulxmlrpcpp.h>
+#include <ulxmlrpcpp/ulxmlrpcpp.h>  // always first header
 
 namespace ulxr {
 
@@ -46,7 +46,7 @@ namespace hidden {
 
 /** Internal helper class, not intended for public use.
  */
-class  MethodWrapperBase
+class ULXR_API_DECL0 MethodWrapperBase
 {
   public:
 
@@ -95,7 +95,7 @@ class MethodWrapper : public MethodWrapperBase
 /** Define interface for adding rpc method to a dispatcher
   * @ingroup grp_ulxr_rpc
   */
-class  MethodAdder
+class ULXR_API_DECL0 MethodAdder
 {
   public:
 
@@ -140,10 +140,10 @@ class  MethodAdder
    * @param  help           short usage description
    */
    virtual void addMethod (StaticMethodCall_t adr,
-                   const std::string &ret_signature,
-                   const std::string &name,
-                   const std::string &signature,
-                   const std::string &help = "") = 0;
+                   const CppString &ret_signature,
+                   const CppString &name,
+                   const CppString &signature,
+                   const CppString &help) = 0;
 
  /** Adds a user defined (dynamic) method to the dispatcher.
    * You access a remote method by sending the "official" name. Sometimes
@@ -158,10 +158,10 @@ class  MethodAdder
    * @param  help           short usage description
    */
    virtual void addMethod (DynamicMethodCall_t wrapper,
-                   const std::string &ret_signature,
-                   const std::string &name,
-                   const std::string &signature,
-                   const std::string &help = "") = 0;
+                   const CppString &ret_signature,
+                   const CppString &name,
+                   const CppString &signature,
+                   const CppString &help) = 0;
 
  /** Adds a system internal method to the dispatcher.
    * You access a remote method by sending the "official" name. Sometimes
@@ -175,10 +175,10 @@ class  MethodAdder
    * @param  help           short usage description
    */
    virtual void addMethod (SystemMethodCall_t adr,
-                   const std::string &ret_signature,
-                   const std::string &name,
-                   const std::string &signature,
-                   const std::string &help = "") = 0;
+                   const CppString &ret_signature,
+                   const CppString &name,
+                   const CppString &signature,
+                   const CppString &help) = 0;
 
  /** Adds a user defined (static) method to the dispatcher.
    * You access a remote method by sending the "official" name. Sometimes
@@ -193,9 +193,9 @@ class  MethodAdder
    */
    virtual void addMethod (StaticMethodCall_t adr,
                    const Signature &ret_signature,
-                   const std::string &name,
+                   const CppString &name,
                    const Signature &signature,
-                   const std::string &help = "") = 0;
+                   const CppString &help) = 0;
 
  /** Adds a user defined (dynamic) method to the dispatcher.
    * You access a remote method by sending the "official" name. Sometimes
@@ -211,9 +211,9 @@ class  MethodAdder
    */
    virtual void addMethod (DynamicMethodCall_t wrapper,
                    const Signature &ret_signature,
-                   const std::string &name,
+                   const CppString &name,
                    const Signature &signature,
-                   const std::string &help = "") = 0;
+                   const CppString &help) = 0;
 
  /** Adds a system internal method to the dispatcher.
    * You access a remote method by sending the "official" name. Sometimes
@@ -228,14 +228,14 @@ class  MethodAdder
    */
    virtual void addMethod (SystemMethodCall_t adr,
                    const Signature &ret_signature,
-                   const std::string &name,
+                   const CppString &name,
                    const Signature &signature,
-                   const std::string &help = "") = 0;
+                   const CppString &help) = 0;
 
  /** Removes a method if available
    * @param name   method name
    */
-   virtual void removeMethod(const std::string &name) = 0;
+   virtual void removeMethod(const CppString &name) = 0;
 };
 
 
@@ -246,6 +246,8 @@ class  MethodAdder
   * @return pointer to wrapper object
   */
 
+#ifndef _MSC_VER
+
 template <class T>
 inline hidden::MethodWrapperBase*
 make_method(T &w, typename hidden::MethodWrapper<T>::PMF pmf)
@@ -253,6 +255,16 @@ make_method(T &w, typename hidden::MethodWrapper<T>::PMF pmf)
   return new hidden::MethodWrapper<T> (&w, pmf);
 }
 
+#else // work around m$vc bug
+
+template <class T, class U>
+inline hidden::MethodWrapper<T>*
+make_method(T &w, U pmf)
+{
+  return new hidden::MethodWrapper<T> (&w, pmf);
+}
+
+#endif
 
 typedef MethodAdder::StaticMethodCall_t MethodAdder_StaticMethodCall_t;
 

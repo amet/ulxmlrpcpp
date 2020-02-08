@@ -5,7 +5,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: ulxr_call.cpp 10942 2011-09-13 14:35:52Z korosteleva $
+    $Id: ulxr_call.cpp 1026 2007-07-25 07:48:09Z ewald-arnold $
 
  ***************************************************************************/
 
@@ -32,70 +32,59 @@
 //#define ULXR_SHOW_READ
 //#define ULXR_SHOW_WRITE
 
-
-#include <ulxmlrpcpp/ulxmlrpcpp.h>
+#define ULXR_NEED_EXPORTS
+#include <ulxmlrpcpp/ulxmlrpcpp.h>  // always first header
 
 #include <ulxmlrpcpp/ulxr_call.h>
 #include <ulxmlrpcpp/ulxr_except.h>
+#include <ulxmlrpcpp/ulxr_callparse_wb.h>
+#include <ulxmlrpcpp/ulxr_wbxmlparse.h>
+
 
 namespace ulxr {
 
 
- MethodCall::MethodCall(const char *name)
+ULXR_API_IMPL0 MethodCall::MethodCall(const ulxr::Char *name)
 {
   methodname = name;
 }
 
 
- MethodCall::MethodCall()
+ULXR_API_IMPL0 MethodCall::MethodCall()
 {
 }
 
 
- MethodCall::~MethodCall()
+ULXR_API_IMPL0 MethodCall::~MethodCall()
 {
 }
 
 
- MethodCall::MethodCall(const std::string &name)
+ULXR_API_IMPL0 MethodCall::MethodCall(const CppString &name)
 {
   methodname = name;
 }
 
 
-MethodCall&  /**/ MethodCall::addParam (const Value &val)
+MethodCall&  /*ULXR_API_IMPL0*/ MethodCall::addParam (const Value &val)
 {
   params.push_back(val);
   return *this;
 }
 
 
-MethodCall&  /**/ MethodCall::setParam (const Value &val)
+MethodCall&  /*ULXR_API_IMPL0*/ MethodCall::setParam (const Value &val)
 {
   clear();
   return addParam(val);
 }
 
 
-MethodCall&  /**/ MethodCall::setParam (unsigned ind, const Value &val)
+ULXR_API_IMPL(CppString) MethodCall::getSignature(bool name_braces) const
 {
-  if (ind < params.size() )
-  {
-    params[ind] = val;
-    return *this;
-  }
-
-  throw ParameterException(InvalidMethodParameterError,
-                           "MethodCall::setParam: Parameter index " + toString(ind) + " in " + getSignature() + " method is out-of-range");
-}
-
-
-
-std::string MethodCall::getSignature(bool name_braces) const
-{
-  std::string s;
+  CppString s;
   if (name_braces)
-    s += methodname + "(";
+    s += methodname + ULXR_PCHAR("(");
 
   bool comma = params.size() >= 1;
   for (unsigned i = 0; i < params.size(); ++i) {
@@ -105,65 +94,90 @@ std::string MethodCall::getSignature(bool name_braces) const
   }
 
   if (name_braces)
-     s += ")";
+     s += ULXR_PCHAR(")");
   return s;
 }
 
 
-std::string MethodCall::getXml(int indent) const
+ULXR_API_IMPL(CppString) MethodCall::getXml(int indent) const
 {
-  std::string ind = getXmlIndent(indent);
-  std::string ind1 = getXmlIndent(indent+1);
-  std::string ind2 = getXmlIndent(indent+2);
-  std::string s = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" + getXmlLinefeed();
-  s += ind + "<methodCall>" + getXmlLinefeed();
-  s += ind1 + "<methodName>"+methodname+"</methodName>" + getXmlLinefeed();
+  CppString ind = getXmlIndent(indent);
+  CppString ind1 = getXmlIndent(indent+1);
+  CppString ind2 = getXmlIndent(indent+2);
+  CppString s = ULXR_PCHAR("<?xml version=\"1.0\" encoding=\"UTF-8\"?>") + getXmlLinefeed();
+  s += ind + ULXR_PCHAR("<methodCall>") + getXmlLinefeed();
+  s += ind1 + ULXR_PCHAR("<methodName>")+methodname+ULXR_PCHAR("</methodName>") + getXmlLinefeed();
 
-  s += ind1 + "<params>" + getXmlLinefeed();
+  s += ind1 + ULXR_PCHAR("<params>") + getXmlLinefeed();
 
   for (std::vector<Value>::const_iterator
          it = params.begin(); it != params.end(); ++it)
   {
-    s += ind2 + "<param>" + getXmlLinefeed();
+    s += ind2 + ULXR_PCHAR("<param>") + getXmlLinefeed();
     s += (*it).getXml(indent+3) + getXmlLinefeed();
-    s += ind2 + "</param>" + getXmlLinefeed();
+    s += ind2 + ULXR_PCHAR("</param>") + getXmlLinefeed();
   }
 
-  s += ind1 + "</params>" + getXmlLinefeed();
-  s += ind + "</methodCall>";
+  s += ind1 + ULXR_PCHAR("</params>") + getXmlLinefeed();
+  s += ind + ULXR_PCHAR("</methodCall>");
   return s;
 }
 
 
+ULXR_API_IMPL(std::string) MethodCall::getWbXml() const
+{
+  std::string s;
+  s.assign(WbXmlParser::wbxml_START_SEQ_STR, WbXmlParser::wbxml_START_SEQ_LEN);
+  s += MethodCallParserWb::wbToken_MethodCall;
+  s += MethodCallParserWb::wbToken_MethodName;
+  s += getWbXmlString(methodname);
+  s += WbXmlParser::wbxml_END;
 
-Value MethodCall::getParam(unsigned ind) const
+  s += MethodCallParserWb::wbToken_Params;
+
+  for (std::vector<Value>::const_iterator
+         it = params.begin(); it != params.end(); ++it)
+  {
+    s += MethodCallParserWb::wbToken_Param;
+    s += (*it).getWbXml();
+    s += WbXmlParser::wbxml_END;
+  }
+
+  s += WbXmlParser::wbxml_END;
+  s += WbXmlParser::wbxml_END;
+  return s;
+}
+
+
+ULXR_API_IMPL(Value) MethodCall::getParam(unsigned ind) const
 {
   if (ind < params.size() )
     return params[ind];
 
   throw ParameterException(InvalidMethodParameterError,
-                           "MethodCall::getParam: Parameter index " + toString(ind) + " in " + getSignature() + " method is out-of-range.");
+                           ulxr_i18n(ULXR_PCHAR("Not enough actual parameters for call to method: ")
+                               +getSignature()));
 }
 
-unsigned MethodCall::numParams() const
+ULXR_API_IMPL(unsigned) MethodCall::numParams() const
 {
   return params.size();
 }
 
 
-void MethodCall::clear()
+ULXR_API_IMPL(void) MethodCall::clear()
 {
   params.clear();
 }
 
 
-std::string MethodCall::getMethodName() const
+ULXR_API_IMPL(CppString) MethodCall::getMethodName() const
 {
   return methodname;
 }
 
 
-void MethodCall::setMethodName(const std::string &nm)
+ULXR_API_IMPL(void) MethodCall::setMethodName(const CppString &nm)
 {
   methodname = nm;
 }

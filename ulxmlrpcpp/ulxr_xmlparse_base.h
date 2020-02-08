@@ -5,7 +5,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: ulxr_xmlparse_base.h 10939 2011-09-12 13:22:25Z korosteleva $
+    $Id: ulxr_xmlparse_base.h 940 2006-12-30 18:22:05Z ewald-arnold $
 
  ***************************************************************************/
 
@@ -30,10 +30,15 @@
 #ifndef ULXR_XMLPARSE_BASE
 #define ULXR_XMLPARSE_BASE
 
+#ifdef HAVE_XMLPARSE_H
+#include <xmlparse.h>
+#else
 #include <expat.h>
 #undef  XMLPARSEAPI
 #define XMLPARSEAPI
-#include <ulxmlrpcpp/ulxmlrpcpp.h>
+#endif
+
+#include <ulxmlrpcpp/ulxmlrpcpp.h>  // always first header
 
 #include <stack>
 
@@ -44,7 +49,7 @@ namespace ulxr {
 /** Base class for XML parsing.
   * @ingroup grp_ulxr_parser
   */
-class  XmlParserBase
+class ULXR_API_DECL0 XmlParserBase
 {
  public:
 
@@ -85,7 +90,7 @@ class  XmlParserBase
    * @param code  error code
    * @return  pointer to description
    */
-   virtual std::string getErrorString(unsigned code) const = 0;
+   virtual CppString getErrorString(unsigned code) const = 0;
 
  /** Gets the line number in the xml data.
    * Because the binary data has nothing like a line number, the occurence number
@@ -109,7 +114,7 @@ class  XmlParserBase
 
 /** Helper class to represent the data of the current parsing step.
   */
-  class  ParserState
+  class ULXR_API_DECL0 ParserState
   {
    public:
 
@@ -141,7 +146,7 @@ class  XmlParserBase
      * Useful only for debugging.
      * @return the name of actual ParserState
      */
-     virtual std::string getStateName() const;
+     virtual CppString getStateName() const;
 
    /** Appends some characters of the ParserState.
      * This is a part of the data of an xml rpc element.
@@ -159,14 +164,14 @@ class  XmlParserBase
    /** Gets the characters of the ParserState.
      * @return  the data element
      */
-     std::string getCharData() const;
+     CppString getCharData() const;
 
    private:
 
      ParserState(const ParserState&); // forbid this
      ParserState& operator= (const ParserState&);
 
-     std::string  cdata;
+     CppString  cdata;
      unsigned   state;
      unsigned   prevstate;
   };

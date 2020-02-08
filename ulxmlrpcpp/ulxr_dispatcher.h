@@ -5,7 +5,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: ulxr_dispatcher.h 10942 2011-09-13 14:35:52Z korosteleva $
+    $Id: ulxr_dispatcher.h 1026 2007-07-25 07:48:09Z ewald-arnold $
 
  ***************************************************************************/
 
@@ -30,7 +30,7 @@
 #ifndef ULXR_DISPATCHER_H
 #define ULXR_DISPATCHER_H
 
-#include <ulxmlrpcpp/ulxmlrpcpp.h>
+#include <ulxmlrpcpp/ulxmlrpcpp.h>  // always first header
 
 #include <ulxmlrpcpp/ulxr_call.h>
 #include <ulxmlrpcpp/ulxr_response.h>
@@ -51,13 +51,15 @@ class Signature;
   * and the according method is called afterwards the response is
   * converted into xml and sent back to the requester.
   * Direct use of this class is intended for proprietary connections.
+  * If you go the usual way via http you ought to use the HttpServer class
+  * and run "picoHttpd"
   * @ingroup grp_ulxr_rpc
   */
-class  Dispatcher : public MethodAdder
+class ULXR_API_DECL0 Dispatcher : public MethodAdder
 {
  public:
 
-   struct  MethodCallDescriptor
+   struct ULXR_API_DECL0 MethodCallDescriptor
    {
 
      friend class Dispatcher;
@@ -75,10 +77,10 @@ class  Dispatcher : public MethodAdder
      * @param help       description of method
      */
      MethodCallDescriptor(CallType calltype,
-                          const std::string &ret_sig,
-                          const std::string &name,
-                          const std::string &signature,
-                          const std::string &help = "");
+                          const CppString &ret_sig,
+                          const CppString &name,
+                          const CppString &signature,
+                          const CppString &help);
 
    /** Compares two method call descriptors.
      * @return true: both are NOT equal
@@ -97,7 +99,7 @@ class  Dispatcher : public MethodAdder
      * @param with_return  includes also the return type (at the begining)
      * @return the signature as string
      */
-     std::string getSignature(bool with_name, bool with_return) const;
+     CppString getSignature(bool with_name, bool with_return) const;
 
    /** The the invocation counter.
      * @return how many this methods was invoked
@@ -121,22 +123,22 @@ class  Dispatcher : public MethodAdder
    /** Gets the method name
      * @return method name
      */
-     std::string getMethodName() const;
+     CppString getMethodName() const;
 
    /** Gets the parameter signature
      * @return parameter signature
      */
-     std::string getParameterSignature() const;
+     CppString getParameterSignature() const;
 
    /** Gets the return value signature
      * @return return value signature
      */
-     std::string getReturnValueSignature() const;
+     CppString getReturnValueSignature() const;
 
    /** Gets the documentation
      * @return documentation
      */
-     std::string getDocumentation() const;
+     CppString getDocumentation() const;
 
    /** Gets the call type
      * @return call type
@@ -146,10 +148,10 @@ class  Dispatcher : public MethodAdder
     private:
 
      CallType         calltype;
-     std::string        method_name;
-     std::string        signature;
-     std::string        return_signature;
-     std::string        documentation;
+     CppString        method_name;
+     CppString        signature;
+     CppString        return_signature;
+     CppString        documentation;
 
      mutable unsigned long  invoked;
      mutable bool           enabled;
@@ -167,8 +169,9 @@ class  Dispatcher : public MethodAdder
 
  /** Constructs a dispatcher.
    * @param  prot        pointer to an existing Protocol
+   * @param  wbxml_mode  true: data is sent as wbxml
    */
-   Dispatcher (Protocol* prot = 0);
+   Dispatcher (Protocol* prot = 0, bool wbxml_mode = false);
 
  /** Destroys the dispatcher.
    * Important: Also frees wrapper objects to worker classes since Dispatcher
@@ -188,10 +191,10 @@ class  Dispatcher : public MethodAdder
    * @param  help           short usage description
    */
    void addMethod (StaticMethodCall_t adr,
-                   const std::string &ret_signature,
-                   const std::string &name,
-                   const std::string &signature,
-                   const std::string &help = "");
+                   const CppString &ret_signature,
+                   const CppString &name,
+                   const CppString &signature,
+                   const CppString &help);
 
  /** Adds a user defined (dynamic) method to the dispatcher.
    * You access a remote method by sending the "official" name. Sometimes
@@ -206,10 +209,10 @@ class  Dispatcher : public MethodAdder
    * @param  help           short usage description
    */
    void addMethod (DynamicMethodCall_t wrapper,
-                   const std::string &ret_signature,
-                   const std::string &name,
-                   const std::string &signature,
-                   const std::string &help = "");
+                   const CppString &ret_signature,
+                   const CppString &name,
+                   const CppString &signature,
+                   const CppString &help);
 
  /** Adds a system internal method to the dispatcher.
    * You access a remote method by sending the "official" name. Sometimes
@@ -223,10 +226,10 @@ class  Dispatcher : public MethodAdder
    * @param  help           short usage description
    */
    void addMethod (SystemMethodCall_t adr,
-                   const std::string &ret_signature,
-                   const std::string &name,
-                   const std::string &signature,
-                   const std::string &help = "");
+                   const CppString &ret_signature,
+                   const CppString &name,
+                   const CppString &signature,
+                   const CppString &help);
 
  /** Adds a user defined (static) method to the dispatcher.
    * You access a remote method by sending the "official" name. Sometimes
@@ -241,9 +244,9 @@ class  Dispatcher : public MethodAdder
    */
    void addMethod (StaticMethodCall_t adr,
                    const Signature &ret_signature,
-                   const std::string &name,
+                   const CppString &name,
                    const Signature &signature,
-                   const std::string &help = "");
+                   const CppString &help);
 
  /** Adds a user defined (dynamic) method to the dispatcher.
    * You access a remote method by sending the "official" name. Sometimes
@@ -259,9 +262,9 @@ class  Dispatcher : public MethodAdder
    */
    void addMethod (DynamicMethodCall_t wrapper,
                    const Signature &ret_signature,
-                   const std::string &name,
+                   const CppString &name,
                    const Signature &signature,
-                   const std::string &help = "");
+                   const CppString &help);
 
  /** Adds a system internal method to the dispatcher.
    * You access a remote method by sending the "official" name. Sometimes
@@ -276,9 +279,9 @@ class  Dispatcher : public MethodAdder
    */
    void addMethod (SystemMethodCall_t adr,
                    const Signature &ret_signature,
-                   const std::string &name,
+                   const CppString &name,
                    const Signature &signature,
-                   const std::string &help = "");
+                   const CppString &help);
 
  /** Waits for an incoming method call.
    * @param timeout the timeout value [sec] (0 - no timeout)
@@ -335,7 +338,7 @@ class  Dispatcher : public MethodAdder
  /** Removes a method if available
    * @param name   method name
    */
-   void removeMethod(const std::string &name);
+   void removeMethod(const CppString &name);
 
  protected:
 
@@ -405,6 +408,7 @@ class  Dispatcher : public MethodAdder
 
    MethodCallMap             methodcalls;
    Protocol                 *protocol;
+   bool                      wbxml_mode;
 };
 
 

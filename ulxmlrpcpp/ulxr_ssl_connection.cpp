@@ -5,7 +5,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: ulxr_ssl_connection.cpp 11073 2011-10-25 12:44:58Z korosteleva $
+    $Id: ulxr_ssl_connection.cpp 1063 2007-08-19 11:46:20Z ewald-arnold $
 
  ***************************************************************************/
 
@@ -32,300 +32,367 @@
 // #define ULXR_SHOW_READ
 // #define ULXR_SHOW_WRITE
 
+#define ULXR_NEED_EXPORTS
+#include <ulxmlrpcpp/ulxmlrpcpp.h>  // always first header
 
-#include <ulxmlrpcpp/ulxmlrpcpp.h>
+#ifdef ULXR_INCLUDE_SSL_STUFF
 
 #include <openssl/err.h>
 #include <ulxmlrpcpp/ulxr_ssl_connection.h>
 #include <ulxmlrpcpp/ulxr_except.h>
-#include <openssl/ssl.h>
-#include <string.h>
-#include <sstream>
+
+
+static int s_server_session_id_context      = 1;
+static int s_server_auth_session_id_context = 2;
 
 namespace ulxr {
 
-bool SSLConnection::SSL_initialized = false;
+
+bool SSLConnection::ssl_initialized = false;
 
 
 static int password_cb(char *buf,int num, int /*rwflag*/, void *userdata)
 {
-  ULXR_TRACE("password_cb");
+  ULXR_TRACE(ULXR_PCHAR("password_cb"));
   SSLConnection *conn = (SSLConnection *)userdata;
   std::string pass = conn->getPassword();
 
-  if((unsigned int)num < pass.length()+1)
+  if(num < (int)pass.length()+1)
     return 0;
 
-  strlcpy(buf, pass.c_str(), pass.length()+1);
+  strcpy(buf, pass.c_str());
   return(strlen(buf));
 }
 
 
- SSLConnection::SSLConnection(const std::string& aRemoteHost, unsigned port, bool anAllowEcCiphers, size_t aTcpConnectionTimeout)
- : TcpIpConnection(aRemoteHost, port, aTcpConnectionTimeout)
- , theSSL(NULL)
- , theSSL_ctx(NULL)
- , theAllowEcCiphers(anAllowEcCiphers)
+ULXR_API_IMPL0 SSLConnection::SSLConnection(bool I_am_server, const CppString &domain, unsigned port)
+ : TcpIpConnection(I_am_server, domain, port)
 {
-  ULXR_TRACE("SSLConnection");
-  init();
-}
-
- SSLConnection::SSLConnection(const IP &aListenIp, unsigned port, bool anAllowEcCiphers)
- : TcpIpConnection(aListenIp, port)
- , theSSL(NULL)
- , theSSL_ctx(NULL)
- , theAllowEcCiphers(anAllowEcCiphers)
-
-{
-  ULXR_TRACE("SSLConnection");
+  ULXR_TRACE(ULXR_PCHAR("SSLConnection"));
   init();
 }
 
 
-void
+ULXR_API_IMPL0 SSLConnection::SSLConnection(bool I_am_server, long adr, unsigned port)
+ : TcpIpConnection(I_am_server, adr, port)
+{
+  ULXR_TRACE(ULXR_PCHAR("SSLConnection"));
+  init();
+}
+
+
+ULXR_API_IMPL(void)
   SSLConnection::setCryptographyData (const std::string &in_password,
                                       const std::string &in_certfile,
                                       const std::string &in_keyfile)
 {
-    password = in_password;
-
-	if (!in_certfile.empty())
-	{
-		if (SSL_CTX_use_certificate_file(theSSL_ctx, in_certfile.c_str(), SSL_FILETYPE_PEM) <= 0)
-    		throw ConnectionException(SystemError, "SSLConnection::setCryptographyData: problem setting up certificate from file: "+in_certfile, 500);
-   		certfile = in_certfile;
-	}
-	if (!in_keyfile.empty())
-	{
-		if (SSL_CTX_use_PrivateKey_file(theSSL_ctx, in_keyfile.c_str(), SSL_FILETYPE_PEM) <= 0)
-			throw ConnectionException(SystemError, "SSLConnection::setCryptographyData: problem setting up key from file: "+in_keyfile, 500);
-		keyfile = in_keyfile;
-	}
+  password = in_password;
+  keyfile = in_keyfile;
+  certfile = in_certfile;
 }
 
 
-void SSLConnection::initializeCTX()
+ULXR_API_IMPL(void) SSLConnection::initializeCTX()
 {
-  ULXR_TRACE("initializeCTX");
-  theSSL_ctx = SSL_CTX_new (SSLv23_method());
-  if (!theSSL_ctx)
-    throw ConnectionException(SystemError,  "problem creating SSL conext object", 500);
-
-   //@note explicit adding ECC to the list of ciphers seems no more needed for OpenSSL 0.9.9+ (is already there).
-   const char* cipher = theAllowEcCiphers?"ALL:ECCdraft":"ALL:!ECCdraft";
-   if (!SSL_CTX_set_cipher_list(theSSL_ctx,cipher))
+  ULXR_TRACE(ULXR_PCHAR("initializeCTX"));
+  SSL_METHOD *meth = SSLv23_method();
+  ssl_ctx = SSL_CTX_new (meth);
+  if (!ssl_ctx)
   {
-        SSL_CTX_free(theSSL_ctx);
-        theSSL_ctx = NULL;
-        throw ConnectionException(SystemError,  "SSL_CTX_set_cipher_list failed", 500);
+    ERR_print_errors_fp(stderr);
+    exit(2);
   }
 
-  SSL_CTX_set_default_passwd_cb(theSSL_ctx, password_cb);
-  SSL_CTX_set_default_passwd_cb_userdata(theSSL_ctx, this);
+  SSL_CTX_set_default_passwd_cb(ssl_ctx, password_cb);
+  SSL_CTX_set_default_passwd_cb_userdata(ssl_ctx, this);
 
-  theSSL = NULL;
+  ssl = 0;
+
+  if (isServerMode())
+  {
+    if (0 >= SSL_CTX_set_session_id_context(ssl_ctx,
+      (const unsigned char *)&s_server_session_id_context,
+      sizeof s_server_session_id_context))
+    {
+      ERR_print_errors_fp(stderr);
+      exit(2);
+    }
+  }
 }
 
 
-void SSLConnection::init()
+ULXR_API_IMPL(void) SSLConnection::init()
 {
-  if (!SSL_initialized)
+  ULXR_TRACE(ULXR_PCHAR("init"));
+  session = 0;
+
+  if (!ssl_initialized)
   {
     SSL_library_init();
     SSLeay_add_ssl_algorithms();
     SSL_load_error_strings();
-    SSL_initialized = true;
+    ssl_initialized = true;
   }
 
   initializeCTX();
 }
 
 
- SSLConnection::~SSLConnection()
+ULXR_API_IMPL0 SSLConnection::~SSLConnection()
 {
-  ULXR_TRACE("~SSLConnection");
-  if (theSSL_ctx)
-  {
-    SSL_CTX_free(theSSL_ctx);
-    theSSL_ctx = NULL;
-  }
-  if (theSSL)
-  {
-    SSL_free(theSSL);
-    theSSL = NULL;
-  }
+  ULXR_TRACE(ULXR_PCHAR("~SSLConnection"));
+  if (ssl_ctx != 0)
+    SSL_CTX_free(ssl_ctx);
+  ssl_ctx = 0;
+
+  ULXR_TRACE(ULXR_PCHAR("~SSLConnection 2"));
+
+  if (0 != session)
+    SSL_SESSION_free(session);
+  session = 0;
 }
 
 
-void SSLConnection::close()
+ULXR_API_IMPL(void) SSLConnection::close()
 {
+  ULXR_TRACE(ULXR_PCHAR("close"));
+
+  if (!isServerMode()) // clients keep session
+  {
+    if (0 != session)
+      SSL_SESSION_free(session);
+
+    session = SSL_get1_session(ssl);
+  }
+
+  ULXR_TRACE(ULXR_PCHAR("close 2"));
+
   TcpIpConnection::close();
-  if (theSSL)
-  {
-    SSL_free(theSSL);
-    theSSL = NULL;
-   }
+  if (ssl != 0)
+    SSL_free(ssl);
+  ssl = 0;
 }
 
 
-size_t SSLConnection::low_level_write(char const *buff, long len)
+ULXR_API_IMPL(ssize_t) SSLConnection::low_level_write(char const *buff, long len)
 {
-  ULXR_TRACE("low_level_write");
+  ULXR_TRACE(ULXR_PCHAR("low_level_write"));
+  ssize_t ret;
 
   if (isConnecting())
     return TcpIpConnection::low_level_write(buff, len);
 
-  size_t ret;
   while (true)
   {
-    ULXR_TRACE("low_level_write 2");
-    ret = SSL_write(theSSL, buff, len);
-    ULXR_TRACE("low_level_write 3 " << ret);
+    ULXR_TRACE(ULXR_PCHAR("low_level_write 2"));
+    ret = SSL_write(ssl, buff, len);
+    ULXR_TRACE(ULXR_PCHAR("low_level_write 3 ") << ret);
 
     if (ret >= 0)
       break;
 
-    ULXR_TRACE("low_level_write 4");
-	int mySslErr = SSL_get_error(theSSL, ret);
-    switch (mySslErr)
+    ULXR_TRACE(ULXR_PCHAR("low_level_write 4"));
+    switch (SSL_get_error(ssl, ret))
     {
       case SSL_ERROR_NONE:
-        ULXR_TRACE("SSL_ERROR_NONE");
+        ULXR_TRACE(ULXR_PCHAR("SSL_ERROR_NONE"));
         break;
 
       case SSL_ERROR_WANT_WRITE:
-        ULXR_TRACE("SSL_ERROR_WANT_WRITE");
+        ULXR_TRACE(ULXR_PCHAR("SSL_ERROR_WANT_WRITE"));
         continue;
 
       default:
-        ULXR_TRACE("default");
-        throw ConnectionException(SystemError, "Could not perform SSL_write() call. SSL_write() returned " + toString(mySslErr), 500);
+        ULXR_TRACE(ULXR_PCHAR("default"));
+        throw ConnectionException(SystemError,
+                                  ulxr_i18n(ULXR_PCHAR("Could not perform SSL_write() call: ")), 500);
     }
   }
-  ULXR_TRACE("/low_level_write " << ret);
+  ULXR_TRACE(ULXR_PCHAR("/low_level_write ") << ret);
   return ret;
 }
 
 
-bool SSLConnection::hasPendingInput() const
+ULXR_API_IMPL(bool) SSLConnection::hasPendingInput() const
 {
-  ULXR_TRACE("hasPendingInput ");
+  ULXR_TRACE(ULXR_PCHAR("hasPendingInput "));
 
   if (isConnecting())
     return TcpIpConnection::hasPendingInput();
 
-  int avail = SSL_pending(theSSL);
-  ULXR_TRACE("hasPendingInput " << avail);
+  int avail = SSL_pending(ssl);
+  ULXR_TRACE(ULXR_PCHAR("hasPendingInput ") << avail);
   return avail != 0;
 }
 
 
-size_t SSLConnection::low_level_read(char *buff, long len)
+ULXR_API_IMPL(ssize_t) SSLConnection::low_level_read(char *buff, long len)
 {
-  ULXR_TRACE("low_level_read");
-  size_t ret;
+  ULXR_TRACE(ULXR_PCHAR("low_level_read"));
+  ssize_t ret;
 
   if (isConnecting())
     return TcpIpConnection::low_level_read(buff, len);
 
   while (true)
   {
-    ULXR_TRACE("low_level_read 2");
-    ret = SSL_read(theSSL, buff, len);
-    ULXR_TRACE("low_level_read 3 " << ret);
+    ULXR_TRACE(ULXR_PCHAR("low_level_read 2"));
+    ret = SSL_read(ssl, buff, len);
+    ULXR_TRACE(ULXR_PCHAR("low_level_read 3 ") << ret);
 
     if (ret >= 0)
       break;
 
-    ULXR_TRACE("low_level_read 4");
-	int mySslErr = SSL_get_error(theSSL, ret);
-    switch (mySslErr)
+    ULXR_TRACE(ULXR_PCHAR("low_level_read 4"));
+    switch (SSL_get_error(ssl, ret))
     {
       case SSL_ERROR_NONE:
-        ULXR_TRACE("SSL_ERROR_NONE");
+        ULXR_TRACE(ULXR_PCHAR("SSL_ERROR_NONE"));
         break;
 
       case SSL_ERROR_WANT_READ:
-        ULXR_TRACE("SSL_ERROR_WANT_READ");
+        ULXR_TRACE(ULXR_PCHAR("SSL_ERROR_WANT_READ"));
         continue;
 
       default:
-        ULXR_TRACE("default");
-        throw ConnectionException(SystemError, "Could not perform SSL_read() call. SSL_read() returned " + toString(mySslErr), 500);
+        ULXR_TRACE(ULXR_PCHAR("default"));
+        throw ConnectionException(SystemError,
+                                  ulxr_i18n(ULXR_PCHAR("Could not perform SSL_read() call: ")), 500);
     }
   }
-  ULXR_TRACE("/low_level_read " << ret);
+  ULXR_TRACE(ULXR_PCHAR("/low_level_read ") << ret);
   return ret;
 }
 
-void SSLConnection::createSSL()
+
+TcpIpConnection *ULXR_API_IMPL0 SSLConnection::makeClone()
 {
-  ULXR_TRACE("createSSL");
-  if (!theSSL_ctx)
-        throw RuntimeException(ApplicationError, "Attempt to initialize SSL connection using non-initialized SSL context");
-     if (theSSL)
-         throw RuntimeException(ApplicationError, "Attempt to initialize SSL connection on top of the already initialized SSL connection");
-  theSSL = SSL_new (theSSL_ctx);
-  if (!theSSL)
-    throw ConnectionException(SystemError, "problem creating SSL connection object from SSL conext", 500);
-
-  if (! SSL_set_fd (theSSL, getHandle()))
-    throw ConnectionException(SystemError, "Problem set file descriptor for SSL", 500);
-
+  return new SSLConnection(*this); // shallow copy !!
 }
 
 
-void SSLConnection::open()
+ULXR_API_IMPL(void) SSLConnection::createSSL()
 {
-  ULXR_TRACE("open");
-  if (theSSL)
-        throw RuntimeException(ApplicationError, "Attempt to open an already open SSL connection");
+  ULXR_TRACE(ULXR_PCHAR("createSSL"));
+  ssl = SSL_new (ssl_ctx);
+  if (ssl == 0)
+    throw ConnectionException(SystemError,
+                          ulxr_i18n(ULXR_PCHAR("problem creating SSL conext object")), 500);
+
+  int err = SSL_set_fd (ssl, getHandle());
+  if (err == 0)
+    throw ConnectionException(SystemError,
+                          ulxr_i18n(ULXR_PCHAR("problem set file descriptor for SSL")), 500);
+
+  if (isServerMode())
+  {
+    if (0 >= SSL_set_session_id_context(ssl,
+      (const unsigned char *)&s_server_auth_session_id_context,
+      sizeof(s_server_auth_session_id_context)))
+    {
+      ERR_print_errors_fp(stderr);
+      exit(2);
+    }
+  }
+}
+
+
+ULXR_API_IMPL(void) SSLConnection::open()
+{
+  ULXR_TRACE(ULXR_PCHAR("open"));
 
   TcpIpConnection::open();
 
   doConnect();  // CONNECT in non-SSL mode!
 
+  int err;
   createSSL();
 
-       //@todo for performance reasons it might make sense to use SSL_SESSION (SSL_set_session in open() and SSL_get1_session() in close)
+  if (0 != session)
+  {
+    ULXR_TRACE(ULXR_PCHAR("SSL_set_session"));
+    SSL_set_session(ssl, session);
+  }
 
-  int myRet = SSL_connect (theSSL);
-  if (myRet != 1)
-    throw ConnectionException(SystemError, "Problem starting SSL connection (client mode). SSL_connect() returned " + toString(SSL_get_error(theSSL, myRet)), 500);
+  err = SSL_connect (ssl);
+  if (err == 0)
+    throw ConnectionException(SystemError,
+                          ulxr_i18n(ULXR_PCHAR("problem starting SSL connection (client mode)")), 500);
 }
 
 
-bool SSLConnection::accept(int in_timeout)
+ULXR_API_IMPL(bool) SSLConnection::accept(int in_timeout)
 {
-  ULXR_TRACE("accept");
+  ULXR_TRACE(ULXR_PCHAR("accept"));
 
-     if (theSSL)
-          throw RuntimeException(ApplicationError, "Attempt to accept an already open SSL connection");
+  if (SSL_CTX_use_certificate_file(ssl_ctx, certfile.c_str(), SSL_FILETYPE_PEM) <= 0) {
+//    ERR_print_errors_fp(stderr);
+    throw ConnectionException(SystemError,
+                          ulxr_i18n(ULXR_PCHAR("problem setting up certificate")), 500);
+  }
 
-  if (SSL_CTX_use_certificate_file(theSSL_ctx, certfile.c_str(), SSL_FILETYPE_PEM) <= 0)
-    throw ConnectionException(SystemError, "problem setting up certificate", 500);
-
-  if (SSL_CTX_use_PrivateKey_file(theSSL_ctx, keyfile.c_str(), SSL_FILETYPE_PEM) <= 0)
-    throw ConnectionException(SystemError, "problem setting up private key", 500);
+  if (SSL_CTX_use_PrivateKey_file(ssl_ctx, keyfile.c_str(), SSL_FILETYPE_PEM) <= 0)
+  {
+//    ERR_print_errors_fp(stderr);
+    throw ConnectionException(SystemError,
+                          ulxr_i18n(ULXR_PCHAR("problem setting up private key")), 500);
+  }
 
 
   if (!TcpIpConnection::accept(in_timeout))
     return false;
 
   createSSL();
-  int myRet = SSL_accept(theSSL);
-  if (myRet != 1)
-    throw ConnectionException(SystemError, "Problem starting SSL connection (server mode). SSL_accept() returned " +  toString(SSL_get_error(theSSL, myRet)), 500);
+  int err = SSL_accept (ssl);
+  if (err == 0)
+    throw ConnectionException(SystemError,
+                          ulxr_i18n(ULXR_PCHAR("problem starting SSL connection (server mode)")), 500);
 
-  ULXR_TRACE("SSL connection using " << SSL_get_cipher (theSSL));
+  /* Get the cipher - opt */
+  ULXR_TRACE(ULXR_PCHAR("SSL connection using ") << ULXR_GET_STRING(SSL_get_cipher (ssl)));
   return true;
 }
 
-std::string SSLConnection::getPassword() const
+
+ULXR_API_IMPL(CppString) SSLConnection::getInterfaceName()
+{
+  ULXR_TRACE(ULXR_PCHAR("getInterfaceName"));
+  return ULXR_PCHAR("ssl");
+}
+
+
+ULXR_API_IMPL(void) SSLConnection::cut()
+{
+  ULXR_TRACE(ULXR_PCHAR("cut"));
+  TcpIpConnection::cut();
+  initializeCTX();
+}
+
+
+ULXR_API_IMPL(std::string) SSLConnection::getPassword() const
 {
   return password;
 }
 
 
+ULXR_API_IMPL(SSL *) SSLConnection::getSslObject() const
+{
+  return ssl;
+}
+
+
+ULXR_API_IMPL(SSL_CTX *) SSLConnection::getSslContextObject() const
+{
+  return ssl_ctx;
+}
+
+
+ULXR_API_IMPL(SSL_SESSION *) SSLConnection::getSslSessionObject() const
+{
+  return session;
+}
+
+
 }  // namespace ulxr
+
+#endif // ULXR_INCLUDE_SSL_STUFF

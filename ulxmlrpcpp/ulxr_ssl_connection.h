@@ -5,7 +5,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: ulxr_ssl_connection.h 11073 2011-10-25 12:44:58Z korosteleva $
+    $Id: ulxr_ssl_connection.h 940 2006-12-30 18:22:05Z ewald-arnold $
 
  ***************************************************************************/
 
@@ -31,14 +31,13 @@
 #define ULXR_SSL_CONNECTION_H
 
 
-#include <ulxmlrpcpp/ulxmlrpcpp.h>
-#include <ulxmlrpcpp/ulxr_tcpip_connection.h>
+#include <ulxmlrpcpp/ulxmlrpcpp.h>  // always first header
 
- // Forward declarations from OpenSSL
- struct ssl_st;
- struct ssl_ctx_st;
- typedef struct ssl_st SSL;
- typedef struct ssl_ctx_st SSL_CTX;
+#ifdef ULXR_INCLUDE_SSL_STUFF
+
+#include <openssl/ssl.h>
+
+#include <ulxmlrpcpp/ulxr_tcpip_connection.h>
 
 
 namespace ulxr {
@@ -47,16 +46,25 @@ namespace ulxr {
 /** Class for ssl connections between XML RPC client and server.
   * @ingroup grp_ulxr_connection
   */
-class  SSLConnection : public TcpIpConnection
+class ULXR_API_DECL0 SSLConnection : public TcpIpConnection
 {
  public:
 
- /** Constructs a generic connection.
+ /** Constructs a generic connection, primarily for a client.
    * The connection is not yet open after construction.
+   * @param  server  true: bind socket to adress for server mode
+   * @param  domain  domain name of the server
+   * @param  port    port on the the server
    */
-   SSLConnection(const std::string& aRemoteHost, unsigned port, bool anAllowEcCiphers, size_t aTcpConnectionTimeout = TcpIpConnection::DefConnectionTimeout);
-   SSLConnection(const IP &aListenIp, unsigned port, bool anAllowEcCiphers);
+   SSLConnection(bool server, const CppString &domain, unsigned port = 80);
 
+ /** Constructs a generic connection, primarily for a server.
+   * The connection is not yet open after construction.
+   * @param  server  true: bind socket to adress for server mode
+   * @param  adr     accepted client adress
+   * @param  port    port on which the connect is accepted
+   */
+   SSLConnection(bool server, long adr = INADDR_ANY, unsigned port = 0);
 
  /** Constructs a connection.
    * The connection is not yet open after construction.
@@ -78,6 +86,15 @@ class  SSLConnection : public TcpIpConnection
    */
    virtual bool accept(int timeout = 0);
 
+ /** Tests if the current transmission expects a return value.
+   * @return true: return value for request
+   */
+   virtual CppString getInterfaceName();
+
+ /** Cuts the connection.
+   * Just the variables are reset, the connection itself is not touched.
+   */
+   virtual void cut();
 
  /** Returns the password.
    * @return password
@@ -95,6 +112,21 @@ class  SSLConnection : public TcpIpConnection
 
  protected:
 
+ /** Returns the SSL object.
+   * @return pointer to ssl object
+   */
+   SSL *getSslObject() const;
+
+ /** Returns the SSL context object.
+   * @return pointer to ssl context object
+   */
+   SSL_CTX *getSslContextObject() const;
+
+ /** Returns the SSL session object.
+   * @return pointer to ssl session object
+   */
+   SSL_SESSION *getSslSessionObject() const;
+
  /** Checks if there is input data which can immediately be read.
    * @return true: data available
    */
@@ -102,15 +134,15 @@ class  SSLConnection : public TcpIpConnection
 
  private:
 
-   SSL          *theSSL;
-   SSL_CTX      *theSSL_ctx;
-   const bool theAllowEcCiphers;
+   SSL          *ssl;
+   SSL_CTX      *ssl_ctx;
+   SSL_SESSION  *session;
 
    std::string   password;
    std::string   keyfile;
    std::string   certfile;
 
-   static bool SSL_initialized;
+   static bool ssl_initialized;
 
  /** Create SSL object.
    */
@@ -125,23 +157,30 @@ class  SSLConnection : public TcpIpConnection
    * @param  len  valid buffer length
    * @return  result from api write function
    */
-   size_t virtual low_level_write(char const *buff, long len);
+   ssize_t virtual low_level_write(char const *buff, long len);
 
  /** Reads data from the connection.
    * @param  buff pointer to data buffer
    * @param  len  maimum number of bytes to read into buffer
    * @return  result from api read function
    */
-   size_t virtual low_level_read(char *buff, long len);
+   ssize_t virtual low_level_read(char *buff, long len);
 
  /** Initializes internal variables.
    */
    void init();
+
+  /** Creates a shallow copy of this object.
+    * @return pointer to shallow copy
+    */
+    virtual TcpIpConnection *makeClone();
 };
 
 
 }  // namespace ulxr
 
+
+#endif // ULXR_INCLUDE_SSL_STUFF
 
 
 #endif // ULXR_SSL_CONNECTION_H

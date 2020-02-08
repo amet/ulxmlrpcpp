@@ -5,7 +5,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: ulxr_valueparse.cpp 10933 2011-09-09 09:44:29Z korosteleva $
+    $Id: ulxr_valueparse.cpp 1158 2009-08-30 14:34:24Z ewald-arnold $
 
  ***************************************************************************/
 
@@ -29,7 +29,7 @@
 
 //#define ULXR_DEBUG_OUTPUT
 
-
+#define ULXR_NEED_EXPORTS
 #include <ulxmlrpcpp/ulxmlrpcpp.h>
 
 #include <memory>
@@ -46,17 +46,29 @@
 namespace ulxr {
 
 
- ValueParser::ValueParser()
+ULXR_API_IMPL0 ValueParser::ValueParser()
   : ValueParserBase()
 {
-  ULXR_TRACE("ValueParser::ValueParser()");
+  ULXR_TRACE(ULXR_PCHAR("ValueParser::ValueParser()"));
   states.push(new ValueState(eNone));
 }
 
 
- ValueParser::~ValueParser()
+ULXR_API_IMPL0 ValueParser::~ValueParser()
 {
-  ULXR_TRACE("ValueParser::~ValueParser()");
+  ULXR_TRACE(ULXR_PCHAR("ValueParser::~ValueParser()"));
+
+#ifdef DEBUG
+  if (states.size() != 1)
+    std::cerr << ulxr_i18n("########## abnormal program behaviour: states.size() != 1: ")
+              << states.size()
+              << std::endl;
+
+  if (getTopValueState()->getParserState() != eNone)
+    std::cerr << ulxr_i18n("########## abnormal program behaviour: getTopState()->getState() != eNone: ")
+              << getTopValueState()->getParserState()
+              << std::endl;
+#endif
 
   while (states.size() != 0)
   {
@@ -69,16 +81,16 @@ namespace ulxr {
 
 
 
-ValueParserBase::ValueState* ValueParser::getTopValueState() const
+ULXR_API_IMPL(ValueParserBase::ValueState *) ValueParser::getTopValueState() const
 {
-  ULXR_TRACE("ValueParser::getTopState() size: " << states.size());
+  ULXR_TRACE(ULXR_PCHAR("ValueParser::getTopState() size: ") << states.size());
 #ifdef DEBUG
   ValueState *vs = dynamic_cast<ValueState*> (states.top());      // be careful about type
   if (vs == 0)
   {
-    ULXR_TRACE("ValueParser::getTopState(), top state: " << (void*) states.top());
-    ULXR_TRACE("ValueParser::getTopState(): state <> ValueState");
-    ULXR_TRACE("ValueParser::getTopState(): state == " << typeid(states.top()).name());
+    ULXR_TRACE(ULXR_PCHAR("ValueParser::getTopState(), top state: ") << (void*) states.top());
+    ULXR_TRACE(ULXR_PCHAR("ValueParser::getTopState(): state <> ValueState"));
+    ULXR_TRACE(ULXR_PCHAR("ValueParser::getTopState(): state == ") << ULXR_GET_STRING(typeid(states.top()).name()));
   }
   return vs;
 #else
@@ -87,21 +99,21 @@ ValueParserBase::ValueState* ValueParser::getTopValueState() const
 }
 
 
-void
+ULXR_API_IMPL(void)
   ValueParser::startElement(const XML_Char* name, const XML_Char** atts)
 {
-  ULXR_TRACE("ValueParser::startElement(const XML_Char*, const char**)");
+  ULXR_TRACE(ULXR_PCHAR("ValueParser::startElement(const XML_Char*, const char**)"));
   if (!testStartElement(name, atts))
     XmlParser::testStartElement(name, atts);
 }
 
 
-bool
+ULXR_API_IMPL(bool)
   ValueParser::testStartElement(const XML_Char* name, const XML_Char** /* atts */)
 {
-  ULXR_TRACE("ValueParser::testStartElement(const XML_Char*, const char**)"
-             << "\n  name: "
-             << name
+  ULXR_TRACE(ULXR_PCHAR("ValueParser::testStartElement(const XML_Char*, const char**)")
+             << ULXR_PCHAR("\n  name: ")
+             << ULXR_GET_STRING(name)
             );
   switch(getTopValueState()->getParserState() )
   {
@@ -189,23 +201,33 @@ bool
 }
 
 
-void ValueParser::endElement(const XML_Char *name)
+ULXR_API_IMPL(void) ValueParser::endElement(const XML_Char *name)
 {
-  ULXR_TRACE("ValueParser::endElement(const XML_Char*)");
+  ULXR_TRACE(ULXR_PCHAR("ValueParser::endElement(const XML_Char*)"));
   if (!testEndElement(name))
     XmlParser::testEndElement(name);
 }
 
 
-bool ValueParser::testEndElement(const XML_Char *name)
+ULXR_API_IMPL(bool) ValueParser::testEndElement(const XML_Char *name)
 {
-  ULXR_TRACE("ValueParser::testEndElement(const XML_Char*)");
+  ULXR_TRACE(ULXR_PCHAR("ValueParser::testEndElement(const XML_Char*)"));
 
   if (states.size() <= 1)
-    throw RuntimeException(ApplicationError, "abnormal program behaviour: ValueParser::testEndElement() had no states left");
+    throw RuntimeException(ApplicationError, ulxr_i18n(ULXR_PCHAR("abnormal program behaviour: ValueParser::testEndElement() had no states left")));
 
   std::auto_ptr<ValueState> curr(getTopValueState());
   states.pop();
+/*
+  ULXR_DOUT (ULXR_GET_STRING(name)
+             << ULXR_PCHAR(" = cur-val: ")
+             << std::hex << (void*) curr->getValue()
+             << ULXR_PCHAR(" state: ")
+             << std::hex << (void*) curr->getParserState()
+             << ULXR_PCHAR(" prev state: ")
+             << std::hex << (void*) curr->getPrevParserState()
+             << std::dec);
+*/
   states.top()->setPrevParserState(curr->getParserState());
   switch(curr->getParserState() )
   {

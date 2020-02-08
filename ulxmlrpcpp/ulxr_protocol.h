@@ -5,7 +5,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: ulxr_protocol.h 11073 2011-10-25 12:44:58Z korosteleva $
+    $Id: ulxr_protocol.h 1089 2007-11-10 10:40:43Z ewald-arnold $
 
  ***************************************************************************/
 
@@ -30,7 +30,7 @@
 #ifndef ULXR_PROTOCOL_H
 #define ULXR_PROTOCOL_H
 
-#include <ulxmlrpcpp/ulxmlrpcpp.h>
+#include <ulxmlrpcpp/ulxmlrpcpp.h>  // always first header
 
 #include <vector>
 
@@ -49,7 +49,7 @@ class Connection;
 /** Base class for the protocol of the rpc transportation.
   * @ingroup grp_ulxr_protocol
   */
-class  Protocol
+class ULXR_API_DECL0 Protocol
 {
  public:
 
@@ -91,14 +91,17 @@ class  Protocol
    */
    bool isOpen() const;
 
- 
+ /** Shuts down the socket.
+   * Only meaningful for certain connections based on TcpIpConnection.
+   * @param mode  shutdown mode
+   *              @li Unix:  SHUT_RD, SHUT_WR or SHUT_RDWR
+   *              @li Win32: SD_RECEIVE, SD_SEND or SD_BOTH
+   */
+   virtual void shutdown(int mode) = 0;
+
  /** Closes the connection.
    */
-   virtual void closeConnection();
-   
- /** Stops serving for server-side connection
-   */   
-   virtual void stopServing();
+   virtual void close();
 
  /** Tests if there are bytes left in the message body.
    * @return true: there is at least one byte available
@@ -115,21 +118,40 @@ class  Protocol
  /** Sends a MethodCall over the connection.
    * @param   call        pointer to the calling data
    * @param   resource    resource for rpc on remote host
+   * @param   wbxml_mode  true: data is sent as wbxml
    */
-   virtual void sendRpcCall(const MethodCall &call, const std::string &resource);
+   virtual void sendRpcCall(const MethodCall &call, const CppString &resource, bool wbxml_mode);
 
  /** Sends a MethodResponse over the connection.
    * @param   resp        pointer to the response data
+   * @param   wbxml_mode  true: data is sent as wbxml
    */
-   virtual void sendRpcResponse(const MethodResponse &resp);
+   virtual void sendRpcResponse(const MethodResponse &resp, bool wbxml_mode);
 
+ /** Sets the connections persistence.
+   * Usually an xml rpc call closes after the response has been received.
+   * To improve performance or to transfer other protocls you may set
+   * the connection to remain open. It is closed at the latest when an
+   * error occurs.
+   * @note If you are using TCP/IP connections with \c TcpIpConnection you
+   *       might want to call \c TcpIpConnection::setTcpNoDelay() to enforce
+   *       sending packets immediately. Otherwise the transmission of the rather
+   *       small xmlrpc packets may be significantly delayed by the socket
+   *       buffer mechanism.
+   * @param   pers  true if connection shall be persistent.
+   */
+   void setPersistent(bool pers);
 
+ /** Gets the persistence information.
+   * @return  true if connection is persistent
+   */
+   bool isPersistent() const;
 
  /** Tests if the response was successful regarding the transportation.
    * @param   phrase  return value describing the problem.
    * @return true  response is OK.
    */
-   virtual bool isResponseStatus200(std::string &phrase) const = 0;
+   virtual bool responseStatus(CppString &phrase) const = 0;
 
  /** General connection states while reading input stream
    */
@@ -166,8 +188,8 @@ class  Protocol
    * @param  pass   Password
    * @param  realm  Synonym for area which shall be accessed
    */
-   void addAuthentication(const std::string &user, const std::string &pass,
-                          const std::string &realm);
+   void addAuthentication(const CppString &user, const CppString &pass,
+                          const CppString &realm);
 
  /** Sets username and password for the next transmission (client mode).
    * This makes the next transmission block use a simple authentication scheme
@@ -175,7 +197,7 @@ class  Protocol
    * @param  user   Username
    * @param  pass   Password
    */
-   virtual void setMessageAuthentication(const std::string &user, const std::string &pass);
+   virtual void setMessageAuthentication(const CppString &user, const CppString &pass);
 
  /** Checks for a valid user in the current message.
    * There must be an appropriate AuthData set and the connection must support
@@ -184,18 +206,38 @@ class  Protocol
    * @param  realm  Synonym for area which shall be accessed
    * @return true: access shall be granted.
    */
-   virtual bool checkAuthentication(const std::string &realm) const;
+   virtual bool checkAuthentication(const CppString &realm) const;
 
  /** Sends a negative response to the caller
    * @param  realm   Description for the caller which username and password to pass in request
    * @return true: access shall be granted.
    */
-   virtual void rejectAuthentication(const std::string &realm);
+   virtual void rejectAuthentication(const CppString &realm);
+
+ /** Sets the current transmission to expect/accept no return value.
+   */
+   virtual void setTransmitOnly();
+
+ /** Tests if the current transmission expects a return value.
+   * @return true: return value for request
+   */
+   virtual bool isTransmitOnly();
 
  /** Returns the connection object.
    * @return pointer to connection object
    */
    Connection * getConnection() const;
+
+ /** Returns a cloned object.
+   * @return pointer to the cloned object
+   */
+   virtual Protocol *clone() const = 0;
+
+ /** Detaches the protocol by creating a duplicate of
+   * the protocol + connection and closing the original connection afterwards.
+   * @return the current protocol
+   */
+   virtual Protocol *detach() = 0;
 
  protected:
 
@@ -222,6 +264,10 @@ class  Protocol
    void setRemainingContentLength(long len);
 
  /** Gets the length of the remaining content.
+   * Depending on the type of connection the results from here are more or less
+   * accurate and up to date. Chunked encoding for http has not neccessarily
+   * an overall content length. This implementation returns the length of
+   * the current chunk.
    * @return number of bytes of content to come, -1 if unknown
    */
    long getRemainingContentLength() const;
@@ -242,7 +288,7 @@ class  Protocol
    * @param  pass   reference to return password
    * @return true: username and password could be extracted
    */
-   virtual bool getUserPass(std::string &user, std::string &pass) const;
+   virtual bool getUserPass(CppString &user, CppString &pass) const;
 
  /** Determines the length of the message body.
    */
@@ -251,7 +297,7 @@ class  Protocol
   /** Returns the protocol name.
    * @return protocol name
    */
-   virtual std::string getProtocolName() = 0;
+   virtual CppString getProtocolName() = 0;
 
  private:
 

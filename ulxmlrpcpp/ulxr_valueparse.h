@@ -5,7 +5,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: ulxr_valueparse.h 10942 2011-09-13 14:35:52Z korosteleva $
+    $Id: ulxr_valueparse.h 1154 2009-08-16 09:24:53Z ewald-arnold $
 
  ***************************************************************************/
 
@@ -30,7 +30,7 @@
 #ifndef ULXR_VALUEPARSE_H
 #define ULXR_VALUEPARSE_H
 
-#include <ulxmlrpcpp/ulxmlrpcpp.h>
+#include <ulxmlrpcpp/ulxmlrpcpp.h>  // always first header
 
 #include <ulxmlrpcpp/ulxr_xmlparse.h>
 #include <ulxmlrpcpp/ulxr_valueparse_base.h>
@@ -52,7 +52,7 @@ namespace ulxr {
   * @see MethodCallParser::testEndElement
   * @ingroup grp_ulxr_parser
   */
-class  ValueParser : public ValueParserBase,
+class ULXR_API_DECL0 ValueParser : public ValueParserBase,
                                    public XmlParser
 {
  public:

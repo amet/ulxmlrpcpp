@@ -285,7 +285,7 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-SUBDIRS = ulxmlrpcpp bcb5 bcb6 msvc msvc71 expat config
+SUBDIRS = ulxmlrpcpp bcb5 bcb6 msvc msvc71 expat contrib stubber rpm config
 EXTRA_DIST = \
   bug-report \
   acinclude.m4 \

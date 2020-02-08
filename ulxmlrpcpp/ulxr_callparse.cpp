@@ -5,7 +5,7 @@
     copyright            : (C) 2002-2007 by Ewald Arnold
     email                : ulxmlrpcpp@ewald-arnold.de
 
-    $Id: ulxr_callparse.cpp 10942 2011-09-13 14:35:52Z korosteleva $
+    $Id: ulxr_callparse.cpp 1158 2009-08-30 14:34:24Z ewald-arnold $
 
  ***************************************************************************/
 
@@ -36,8 +36,8 @@
 #include <cstring>
 #include <memory>
 
-
-#include <ulxmlrpcpp/ulxmlrpcpp.h>
+#define ULXR_NEED_EXPORTS
+#include <ulxmlrpcpp/ulxmlrpcpp.h>  // always first header
 
 #include <ulxmlrpcpp/ulxr_callparse.h>
 #include <ulxmlrpcpp/ulxr_except.h>
@@ -46,7 +46,7 @@
 namespace ulxr {
 
 
-void MethodCallParser::startElement(const XML_Char* name,
+ULXR_API_IMPL(void) MethodCallParser::startElement(const XML_Char* name,
                                                 const XML_Char** atts)
 {
   if (!testStartElement(name, atts))
@@ -54,13 +54,13 @@ void MethodCallParser::startElement(const XML_Char* name,
 }
 
 
-bool
+ULXR_API_IMPL(bool)
   MethodCallParser::testStartElement(const XML_Char* name,
                                      const XML_Char** /*atts*/)
 {
-  ULXR_TRACE("MethodCallParser::testStartElement(const XML_Char*, const char**)"
-             << "\n  name: "
-             << name
+  ULXR_TRACE(ULXR_PCHAR("MethodCallParser::testStartElement(const XML_Char*, const char**)")
+             << ULXR_PCHAR("\n  name: ")
+             << ULXR_GET_STRING(name)
             );
 
   switch(states.top()->getParserState() )
@@ -108,25 +108,25 @@ bool
 }
 
 
-void MethodCallParser::endElement(const XML_Char *name)
+ULXR_API_IMPL(void) MethodCallParser::endElement(const XML_Char *name)
 {
   if (!testEndElement(name))
     ValueParser::testEndElement(name);
 }
 
 
-bool MethodCallParser::testEndElement(const XML_Char *name)
+ULXR_API_IMPL(bool) MethodCallParser::testEndElement(const XML_Char *name)
 {
-  ULXR_TRACE("MethodCallParser::testEndElement(const XML_Char*)");
+  ULXR_TRACE(ULXR_PCHAR("MethodCallParser::testEndElement(const XML_Char*)"));
 
   if (states.size() <= 1)
-    throw RuntimeException(ApplicationError, "abnormal program behaviour: MethodCallParser::testEndElement() had no states left");
+    throw RuntimeException(ApplicationError, ulxr_i18n(ULXR_PCHAR("abnormal program behaviour: MethodCallParser::testEndElement() had no states left")));
 
   std::auto_ptr<ValueState> curr(getTopValueState());
   states.pop();
 
-//   ULXR_TRACE("\n  current data: <"
-//              << curr->getCharData() << ">");
+//   ULXR_TRACE(ULXR_PCHAR("\n  current data: <")
+//              << curr->getCharData() << ULXR_PCHAR(">"));
 
   switch(curr->getParserState() )
   {
