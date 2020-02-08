@@ -103,6 +103,14 @@ ULXR_API_IMPL(void) SSLConnection::initializeCTX()
     exit(2);
   }
 
+  const char* cipher = "ALL:ECCdraft";
+  if (!SSL_CTX_set_cipher_list(ssl_ctx,cipher))
+  {
+        SSL_CTX_free(ssl_ctx);
+        ssl_ctx = NULL;
+        throw ConnectionException(SystemError,  "SSL_CTX_set_cipher_list failed", 500);
+  }
+  
   SSL_CTX_set_default_passwd_cb(ssl_ctx, password_cb);
   SSL_CTX_set_default_passwd_cb_userdata(ssl_ctx, this);
 
